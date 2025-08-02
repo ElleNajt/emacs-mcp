@@ -1,0 +1,217 @@
+# Emacs MCP Server
+
+A Model Context Protocol (MCP) server implementation in Emacs Lisp that enables Claude Code CLI to interact with Emacs through a rich set of tools for buffer management, Org-mode operations, workspace control, and Elisp debugging.
+
+## Overview
+
+This project provides:
+- **MCP Server**: A TCP-based server (`claude-code-mcp-server.el`) that implements the MCP protocol
+- **Tool Framework**: A macro system for easily defining new MCP tools
+- **Rich Tool Set**: Comprehensive example tools for Emacs interaction (`examples/mcp/mcp-tools.el`)
+- **Security**: Input validation and access restrictions to protect sensitive data
+
+## Quick Start
+
+1. **Load the MCP server**:
+   ```elisp
+   (load-file "claude-code-mcp-server.el")
+   ```
+
+2. **Load example tools**:
+   ```elisp
+   (load-file "examples/mcp/mcp-tools.el")
+   ```
+
+3. **Start the server**:
+   ```elisp
+   (claude-code-start-mcp-server)
+   ```
+
+4. **Configure Claude Code CLI** to use the MCP server via the proxy script:
+   ```bash
+   # The mcp-proxy.sh script bridges stdio to the Emacs TCP server
+   chmod +x mcp-proxy.sh
+   ```
+
+## Architecture
+
+### Core Components
+
+- **`claude-code-mcp-server.el`**: Main MCP server implementation
+  - TCP server on port 8765 (configurable)
+  - JSON-RPC message handling
+  - Tool discovery and execution framework
+  - Security validation
+
+- **`mcp-proxy.sh`**: Ultra-thin proxy that bridges stdio to TCP
+  - Uses `nc` to connect Claude Code CLI to Emacs MCP server
+  - Enables standard MCP client integration
+
+- **`examples/mcp/mcp-tools.el`**: Rich collection of MCP tools
+  - 25+ tools for comprehensive Emacs interaction
+  - Org-mode integration, workspace management, debugging utilities
+  - Security patterns and blocked buffer protection
+
+### Tool Definition Framework
+
+Use the `claude-code-defmcp` macro to create new MCP tools:
+
+```elisp
+(claude-code-defmcp my-tool (param1 param2)
+  "Tool documentation."
+  :mcp-description "Brief description for MCP clients"
+  :mcp-schema '((param1 . ("string" "Parameter description"))
+                (param2 . ("array" "Another parameter")))
+  ;; Implementation
+  (format "Result: %s %s" param1 param2))
+```
+
+## Available Tools
+
+### Buffer Management
+- **`mcp-get-buffer-list`**: List all live buffers with optional details
+- **`mcp-view-buffer`**: Extract buffer contents with line numbers
+- **`mcp-emacs-buffer-info`**: Comprehensive buffer analysis including variables and content
+- **`mcp-open-file`**: Open files in Emacs (with security restrictions)
+
+### Emacs Introspection
+- **`mcp-emacs-search`**: Search for symbols, commands, variables, functions
+- **`mcp-emacs-describe`**: Get detailed documentation for Emacs symbols
+- **`mcp-get-variable-value`**: Query Emacs variable values
+- **`mcp-emacs-keymap-analysis`**: Analyze buffer keymaps and bindings
+
+### Org-Mode Integration
+- **`mcp-get-agenda`**: Export org-agenda views
+- **`mcp-org-agenda-todo-batch`**: Batch update TODO states in agenda
+- **`mcp-org-schedule-todo`**: Schedule TODO items with dates
+- **`mcp-org-archive-todo`**: Archive completed tasks
+- **`mcp-org-capture`**: Create new items via capture templates
+- **`mcp-org-get-all-todos`**: Comprehensive TODO listing across files
+- **`mcp-org-agenda-goto`**: Navigate to agenda item sources with context
+
+### Workspace Management (Doom Emacs)
+- **`mcp-get-workspace-buffers`**: List buffers in workspaces
+- **`mcp-rename-workspace`**: Rename workspaces with meaningful names
+- **`mcp-create-workspace`**: Create new project workspaces
+- **`mcp-delete-workspace`**: Safely delete workspaces (protects active sessions)
+- **`mcp-move-protected-buffers-to-workspace`**: Move Claude/terminal sessions between workspaces
+- **`mcp-setup-workspace-layout`**: Configure window layouts
+
+### Elisp Debugging
+- **`mcp-check-parens`**: Validate parentheses balance in Lisp files
+- **`mcp-count-parens`**: Count parentheses between specific lines
+- **`mcp-check-parens-range`**: Check balance in line ranges
+- **`mcp-show-paren-balance`**: Display running balance counts by line
+
+## Configuration
+
+### Server Settings
+```elisp
+;; Enable/disable MCP server (default: t)
+(setq claude-code-mcp-enabled t)
+
+;; TCP port for MCP server (default: 8765)  
+(setq claude-code-mcp-port 8765)
+```
+
+### Security Settings
+```elisp
+;; File access restrictions (default: t)
+(setq claude-code-mcp-restrict-file-access t)
+
+;; Patterns that block buffer access
+(setq claude-code-mcp-blocked-buffer-patterns
+      '("password" ".pem" "secret" ".key" "token" "credential" "auth" ".ssh"))
+```
+
+## Security Considerations
+
+⚠️ **Important Security Notice**: This MCP server provides Claude with broad access to your Emacs environment.
+
+### Access Scope
+- **Buffer Access**: Can read any open buffer (source code, notes, sensitive files)
+- **File Access**: Restricted to current directory and `/tmp/ClaudeWorkingFolder/` by default
+- **Emacs Variables**: Can query any Emacs variable value
+- **Org Data**: Full access to agenda, TODOs, capture templates
+
+### Protection Mechanisms
+- **Input Validation**: Blocks Elisp injection, shell commands, directory traversal
+- **Buffer Blocking**: Configurable patterns to block sensitive buffers
+- **File Restrictions**: Limits file access to safe directories (configurable)
+- **Parameter Sanitization**: Validates symbols, file paths, and content
+
+### Best Practices
+- Close sensitive buffers before enabling MCP
+- Use dedicated Emacs sessions for Claude interactions
+- Review blocked buffer patterns for your use case
+- Consider disabling web access when using MCP tools
+- Use Claude Code's directory restrictions in settings
+
+## File Output
+
+Many tools write results to `/tmp/ClaudeWorkingFolder/` for analysis:
+- Agenda exports: `agenda.txt`
+- Buffer contents: `<buffer-name>.txt`
+- Analysis results: Various descriptive filenames
+- Ensure this directory is accessible to Claude Code CLI
+
+## Server Management
+
+### Interactive Commands
+- `M-x claude-code-start-mcp-server` - Start the server
+- `M-x claude-code-stop-mcp-server` - Stop the server
+- Auto-starts via `claude-code-start-hook` if enabled
+
+### Status Checking
+Check server status and view client connections through the `claude-code-mcp-server-process` variable.
+
+## Troubleshooting
+
+### Common Issues
+1. **No tools available**: Load `examples/mcp/mcp-tools.el`
+2. **Permission denied**: Add `/tmp/ClaudeWorkingFolder` to Claude Code settings
+3. **Port conflicts**: Change `claude-code-mcp-port` to available port
+4. **Connection issues**: Check proxy script permissions and nc availability
+
+### Debugging
+- Check `*Messages*` buffer for server logs
+- Verify server process with `(process-live-p claude-code-mcp-server-process)`
+- Test tools directly: `(mcp-hello-world "test")`
+
+## Development
+
+### Adding New Tools
+1. Define using `claude-code-defmcp` macro
+2. Include `:mcp-description` and `:mcp-schema`
+3. Follow security patterns from existing tools
+4. Test with various input types
+
+### Schema Format
+```elisp
+:mcp-schema '((param-name . ("type" "description")))
+```
+Supported types: "string", "number", "boolean", "array", "object"
+
+### Security Guidelines
+- Validate all user inputs
+- Use `claude-code-mcp-buffer-blocked-p` for buffer access
+- Write outputs to `/tmp/ClaudeWorkingFolder/`
+- Avoid shell commands or file system modifications
+
+## License
+
+This project follows the same license as Emacs itself.
+
+## Contributing
+
+Contributions welcome! Focus areas:
+- Additional tool implementations
+- Security enhancements  
+- Documentation improvements
+- Performance optimizations
+
+## Related Projects
+
+- [Model Context Protocol](https://github.com/modelcontextprotocol/specification)
+- [Claude Code CLI](https://github.com/anthropics/claude-code)
+- [Emacs](https://www.gnu.org/software/emacs/)
