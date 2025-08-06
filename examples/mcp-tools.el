@@ -49,12 +49,8 @@
     ;; Variable operations  
     (symbol-value . (symbol))          ; Takes 1 symbol argument
     
-    ;; Documentation functions  
-    (describe-function . (symbol))     ; Takes 1 function symbol
-    (describe-variable . (symbol))     ; Takes 1 variable symbol
-    (apropos . (string))              ; Takes 1 string pattern
-    (apropos-command . (string))      ; Takes 1 string pattern
-    (apropos-variable . (string))     ; Takes 1 string pattern
+    ;; Note: Documentation functions (describe-function, describe-variable, apropos-*) 
+    ;; are handled by dedicated MCP tools (mcp-emacs-describe, mcp-emacs-search)
     
     ;; Utility functions (no arguments)
     (emacs-version . ())
@@ -66,9 +62,7 @@
 (cl-deftype mcp-allowed-function () 
   '(choice "profiler-start" "profiler-stop" "profiler-report" "profiler-reset" "profiler-running-p" 
            "garbage-collect" "memory-report" "buffer-list" "process-list" 
-           "symbol-value" "describe-function" "describe-variable" 
-           "apropos" "apropos-command" "apropos-variable" 
-           "emacs-version" "current-time" "user-full-name" "system-name"))
+           "symbol-value" "emacs-version" "current-time" "user-full-name" "system-name"))
 
 ;;;; Type conversion helper function
 
@@ -219,7 +213,7 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                                              args expected-arg-types))
                                  (result (if args
                                              (apply func-symbol converted-args)
-                                           (funcall func-symbol)))))
+                                           (funcall func-symbol))))
                             (format "%s returned: %s" function-name result))
                         (error (format "Error calling %s: %s" function-name (error-message-string err))))))
 
