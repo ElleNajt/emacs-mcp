@@ -21,6 +21,18 @@
 
 ;;; Code:
 
+;;;; Tool-specific enum types
+
+;; Define enum types used by the example tools
+(cl-deftype mcp-agenda-type () '(choice "a" "t" "n" "m" "T" "N" "e" "E" "D"))
+(cl-deftype mcp-search-type () '(choice "all" "commands" "variables" "functions"))
+(cl-deftype mcp-target-type () '(choice "agenda_line" "agenda_text" "org_heading"))
+(cl-deftype mcp-describe-type () '(choice "function" "variable" "symbol"))
+(cl-deftype mcp-todo-status () '(choice "TODO" "DONE" "NEXT" "STARTED" "WAITING" "CANCELLED"))
+(cl-deftype mcp-priority () '(choice "high" "medium" "low"))
+(cl-deftype mcp-split-direction () '(choice "horizontal" "vertical"))
+(cl-deftype mcp-toggle-variable () '(choice "debug-on-error" "debug-on-quit"))
+
 ;;;; Configuration Variables
 
 (defcustom claude-code-mcp-blocked-buffer-patterns
@@ -62,6 +74,28 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                     (format "Hello, %s! 👋" name))
 
 ;;;; Emacs Variable Access
+
+(claude-code-defmcp mcp-toggle-variable (variable-name &optional new-value)
+                    "Toggle or set boolean variables like debug-on-error, validation settings, etc."
+                    :mcp-description "Toggle or set common Emacs boolean variables"
+                    :mcp-schema '((variable-name . (mcp-toggle-variable "Variable to toggle"))
+                                  (new-value . ((or boolean nil) "Optional: true/false to set, nil to toggle")))
+                    (let ((var-symbol (intern variable-name)))
+                      (unless (boundp var-symbol)
+                        (error "Variable %s is not defined" variable-name))
+                      
+                      (let* ((current-value (symbol-value var-symbol))
+                             (new-val (cond
+                                       ;; Handle JSON boolean values
+                                       ((eq new-value :true) t)
+                                       ((eq new-value :false) nil)
+                                       ((eq new-value t) t)
+                                       ((eq new-value nil) (not current-value))  ; Toggle when nil
+                                       (t (not current-value)))))  ; Toggle by default
+                        
+                        (set var-symbol new-val)
+                        (format "Variable '%s' changed from %s to %s" 
+                                variable-name current-value new-val))))
 
 (claude-code-defmcp mcp-get-variable-value (variable-names)
                     "Get the current value of one or more Emacs variables."

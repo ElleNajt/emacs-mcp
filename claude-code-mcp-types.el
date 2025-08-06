@@ -24,14 +24,6 @@ When nil, all validation is bypassed for performance or debugging."
   :type 'boolean
   :group 'claude-code)
 
-;; Define some common MCP enum types
-(cl-deftype mcp-agenda-type () '(choice "a" "t" "n" "m" "T" "N" "e" "E" "D"))
-(cl-deftype mcp-search-type () '(choice "all" "commands" "variables" "functions"))
-(cl-deftype mcp-target-type () '(choice "agenda_line" "agenda_text" "org_heading"))
-(cl-deftype mcp-describe-type () '(choice "function" "variable" "symbol"))
-(cl-deftype mcp-todo-status () '(choice "TODO" "DONE" "NEXT" "STARTED" "WAITING" "CANCELLED"))
-(cl-deftype mcp-priority () '(choice "high" "medium" "low"))
-(cl-deftype mcp-split-direction () '(choice "horizontal" "vertical"))
 
 ;;;; Simplified JSON Schema generation
 
@@ -131,8 +123,8 @@ Supports: string, integer, number, boolean, (list type), (choice vals...), (or t
                 (append base-schema '((nullable . t))))
             ;; Multiple types - use anyOf
             `((anyOf . ,(apply #'vector 
-                              (mapcar #'claude-code-mcp-type-to-json-schema 
-                                      (cdr type-spec))))))))
+                               (mapcar #'claude-code-mcp-type-to-json-schema
+                                       (cdr type-spec))))))))
        
        ;; Unknown complex type - default to object
        (t '((type . "object"))))))
@@ -149,11 +141,11 @@ Returns (success . error-message) pair."
       (if (claude-code-mcp-type-matches-p value type-spec)
           '(t . nil)
         (cons nil (format "Parameter '%s' expected %s, got %s" 
-                         param-name
-                         (claude-code-mcp-simple-type-description type-spec)
-                         (claude-code-mcp-value-description value))))
-    (error (cons nil (format "Validation error for parameter '%s': %s" 
-                            param-name (error-message-string err))))))
+                          param-name
+                          (claude-code-mcp-simple-type-description type-spec)
+                          (claude-code-mcp-value-description value))))
+    (error (cons nil (format "Validation error for parameter '%s': %s"
+                             param-name (error-message-string err))))))
 
 (defun claude-code-mcp-type-matches-p (value type-spec)
   "Check if VALUE matches simplified TYPE-SPEC."
