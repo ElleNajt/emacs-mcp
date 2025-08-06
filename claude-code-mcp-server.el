@@ -46,10 +46,33 @@
 
 ;;;; MCP Tool definition macro
 
+(defun claude-code-mcp-parse-new-schema (params)
+  "Convert new parameter format to old schema format.
+PARAMS is a list of parameter definitions in the new format:
+  ((:name \"param1\" :type \"string\" :required t :description \"desc\"))
+Returns an alist in the old format:
+  ((param1 . (string \"desc\")))"
+  (let ((result '()))
+    (dolist (param params)
+      (let ((name (plist-get param :name))
+            (type (plist-get param :type))
+            (desc (plist-get param :description))
+            (required (plist-get param :required)))
+        (when name
+          ;; Convert string name to symbol for the alist key
+          (push (cons (intern name)
+                     (list (intern type) desc))
+                result))))
+    (nreverse result)))
+
 (defmacro claude-code-defmcp (name args docstring &rest body-and-properties)
   "Define an MCP tool function with embedded properties.
 NAME is the function name, ARGS is the argument list, DOCSTRING is the documentation.
-The remaining BODY-AND-PROPERTIES can contain :mcp-description, :mcp-schema, and function body."
+The remaining BODY-AND-PROPERTIES can contain :description, :parameters/:mcp-schema, and function body.
+
+Supports two schema formats:
+Old format: :mcp-schema '((param . (type \"description\")))
+New format: :parameters ((:name \"param\" :type \"string\" :required t :description \"desc\"))"
   (let ((description nil)
         (schema nil)
         (body '()))
@@ -58,11 +81,19 @@ The remaining BODY-AND-PROPERTIES can contain :mcp-description, :mcp-schema, and
     (while body-and-properties
       (let ((item (car body-and-properties)))
         (cond
-         ((eq item :mcp-description)
+         ;; Support both :mcp-description and :description
+         ((or (eq item :mcp-description) (eq item :description))
           (setq description (cadr body-and-properties))
           (setq body-and-properties (cddr body-and-properties)))
+         ;; Old format schema
          ((eq item :mcp-schema)
           (setq schema (cadr body-and-properties))
+          (setq body-and-properties (cddr body-and-properties)))
+         ;; New format schema
+         ((eq item :parameters)
+          (let ((params (cadr body-and-properties)))
+            ;; Convert new format to old format
+            (setq schema (claude-code-mcp-parse-new-schema params)))
           (setq body-and-properties (cddr body-and-properties)))
          (t
           (push item body)
