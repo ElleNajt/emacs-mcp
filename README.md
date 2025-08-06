@@ -1,14 +1,15 @@
 # Emacs MCP Server
 
-A Model Context Protocol (MCP) server implementation in Emacs Lisp that enables Claude Code CLI to interact with Emacs through a rich set of tools for buffer management, Org-mode operations, workspace control, and Elisp debugging.
+A Model Context Protocol (MCP) server implementation in Emacs Lisp that enables Claude Code CLI to interact with Emacs through a comprehensive set of tools for buffer management, Org-mode operations, workspace control, and Elisp debugging.
 
 ## Overview
 
 This project provides:
-- **Full MCP Protocol**: Complete implementation of MCP tools, resources, and prompts
+- **MCP Tools Protocol**: Complete implementation of MCP tools for Emacs interaction
 - **MCP Server**: A TCP-based server (`claude-code-mcp-server.el`) that implements the MCP protocol
-- **Tool Framework**: Macro systems for defining MCP tools, resources, and prompts
-- **Rich Tool Set**: 25+ tools, 4 resources, and 4 prompts for comprehensive Emacs interaction
+- **Tool Framework**: Macro system for defining MCP tools with type validation
+- **Rich Tool Set**: 25+ tools for comprehensive Emacs interaction
+- **Type System**: Emacs Lisp-style type specifications with JSON Schema generation
 - **Security**: Input validation and access restrictions to protect sensitive data
 
 ## Quick Start
@@ -20,7 +21,7 @@ This project provides:
 
 2. **Load example tools**:
    ```elisp
-   (load-file "examples/mcp/mcp-tools.el")
+   (load-file "examples/mcp-tools.el")
    ```
 
 3. **Start the server**:
@@ -28,10 +29,10 @@ This project provides:
    (claude-code-start-mcp-server)
    ```
 
-4. **Configure Claude Code CLI** to use the MCP server via the proxy script:
+4. **Install in Claude Code CLI**:
    ```bash
-   # The mcp-proxy.sh script bridges stdio to the Emacs TCP server
-   chmod +x mcp-proxy.sh
+   # From the project directory
+   claude mcp add emacs ./mcp-proxy.sh
    ```
 
 ## Architecture
@@ -48,50 +49,33 @@ This project provides:
   - Uses `nc` to connect Claude Code CLI to Emacs MCP server
   - Enables standard MCP client integration
 
-- **`examples/mcp/mcp-tools.el`**: Rich collection of MCP tools
+- **`examples/mcp-tools.el`**: Rich collection of MCP tools
   - 25+ tools for comprehensive Emacs interaction
   - Org-mode integration, workspace management, debugging utilities
   - Security patterns and blocked buffer protection
 
-### Definition Frameworks
+### Tool Definition Framework
 
-#### Tools
-Use the `claude-code-defmcp` macro to create new MCP tools:
+Use the `claude-code-defmcp` macro to create new MCP tools with rich type specifications:
 
 ```elisp
-(claude-code-defmcp my-tool (param1 param2)
+(claude-code-defmcp my-tool (name files status)
   "Tool documentation."
   :mcp-description "Brief description for MCP clients"
-  :mcp-schema '((param1 . ("string" "Parameter description"))
-                (param2 . ("array" "Another parameter")))
-  ;; Implementation
-  (format "Result: %s %s" param1 param2))
+  :mcp-schema '((name . (string "User name"))
+                (files . ((list string) "List of file paths"))
+                (status . ((choice "active" "inactive") "Current status")))
+  ;; Implementation with validated parameters
+  (format "Processing %s with %d files, status: %s" 
+          name (length files) status))
 ```
 
-#### Resources
-Use the `claude-code-defmcp-resource` macro to create live data sources:
-
-```elisp
-(claude-code-defmcp-resource my-resource ()
-  "Resource documentation."
-  :mcp-description "Brief description of the resource"
-  :mcp-mime-type "text/plain"
-  ;; Return current data
-  (format "Current status: %s" (current-time-string)))
-```
-
-#### Prompts
-Use the `claude-code-defmcp-prompt` macro to create prompt templates:
-
-```elisp
-(claude-code-defmcp-prompt my-prompt (context focus)
-  "Prompt documentation."
-  :mcp-description "Brief description of the prompt"
-  :mcp-schema '((context . ("string" "Context information"))
-                (focus . ("string" "Focus area")))
-  ;; Return formatted prompt
-  (format "You are an expert in %s. Focus on %s..." context focus))
-```
+#### Type System Features
+- **Basic types**: `string`, `integer`, `number`, `boolean`, `symbol`
+- **Arrays**: `(list string)` - array where each element is validated
+- **Optional**: `(or string nil)` - allows nil/missing values
+- **Enums**: `(choice "a" "b" "c")` - only specific values allowed
+- **Complex**: `(list symbol)` - arrays of symbols for function names
 
 ## Available Tools
 
@@ -130,31 +114,16 @@ Use the `claude-code-defmcp-prompt` macro to create prompt templates:
 - **`mcp-check-parens-range`**: Check balance in line ranges
 - **`mcp-show-paren-balance`**: Display running balance counts by line
 
-## Available Resources
+## Test Tools
 
-Resources provide live, read-only access to current Emacs state. They're accessed via URI and automatically refresh when read.
+The following test tools demonstrate the type validation system:
 
-### System Information
-- **`mcp-emacs-config`** (`emacs://resource/mcp-emacs-config`): Current Emacs configuration and environment details including version, user info, system type, and loaded features
-- **`mcp-emacs-performance-metrics`** (`emacs://resource/mcp-emacs-performance-metrics`): Real-time performance metrics including memory usage, GC statistics, uptime, and resource counts
+### Validation Examples
+- **`mcp-test-validation`**: Test basic types (string, integer, array)
+- **`mcp-test-symbols`**: Test symbol handling for function names  
+- **`mcp-test-enum`**: Test enum validation with specific allowed values
 
-### Buffer Status
-- **`mcp-current-buffer-status`** (`emacs://resource/mcp-current-buffer-status`): Live status of all open buffers with file associations, modification status, and major modes
-
-### Org-Mode Data
-- **`mcp-org-agenda-summary`** (`emacs://resource/mcp-org-agenda-summary`): Current agenda overview with statistics, upcoming items, and full agenda content
-
-## Available Prompts
-
-Prompts generate contextual prompts for specific use cases. They take parameters and return formatted prompts ready for use.
-
-### Development Assistance
-- **`mcp-debug-emacs-issue`**: Generate debugging prompts for Emacs configuration, keybinding, package, or performance issues
-- **`mcp-code-review-prompt`**: Create code review prompts focusing on specific languages (including Elisp) and review areas (security, performance, maintainability, style)
-- **`mcp-elisp-learning-prompt`**: Educational prompts for learning Emacs Lisp at beginner, intermediate, or advanced levels
-
-### Productivity
-- **`mcp-org-mode-assistant`**: Generate prompts for org-mode workflows including planning, review, capture, agenda optimization, and workflow design
+These tools show how the type system validates parameters and provides clear error messages when types don't match.
 
 ## Configuration
 
@@ -221,10 +190,11 @@ Check server status and view client connections through the `claude-code-mcp-ser
 ## Troubleshooting
 
 ### Common Issues
-1. **No tools available**: Load `examples/mcp/mcp-tools.el`
+1. **No tools available**: Load `examples/mcp-tools.el`
 2. **Permission denied**: Add `/tmp/ClaudeWorkingFolder` to Claude Code settings
 3. **Port conflicts**: Change `claude-code-mcp-port` to available port
 4. **Connection issues**: Check proxy script permissions and nc availability
+5. **Validation errors**: Currently disabled - tools work without type checking
 
 ### Debugging
 - Check `*Messages*` buffer for server logs
@@ -253,42 +223,29 @@ Check server status and view client connections through the `claude-code-mcp-ser
 3. Return well-formatted prompts with clear instructions
 4. Include examples and specific guidance
 
-### Schema Format and Type System
+### Type System
 
-The MCP server now supports rich type specifications inspired by Emacs Lisp type syntax:
+The MCP server supports rich type specifications for parameter validation:
 
-#### Basic Types
+#### Supported Types
+- **Basic**: `string`, `integer`, `number`, `boolean`, `symbol`
+- **Collections**: `(list type)` - arrays with element validation
+- **Optional**: `(or type nil)` - allows missing/null values  
+- **Enums**: `(choice "val1" "val2" ...)` - specific allowed values
+
+#### Schema Format
 ```elisp
-:mcp-schema '((name . (string "User name"))
-              (age . (integer "User age"))
-              (active . (boolean "Is active")))
+:mcp-schema '((name . (string "Description"))
+              (files . ((list string) "Array of file paths"))
+              (status . ((choice "active" "inactive") "Status choice"))
+              (count . ((or integer nil) "Optional number")))
 ```
 
-#### Complex Types
-```elisp
-:mcp-schema '((files . ((list string) "List of file paths"))
-              (count . ((or integer nil) "Optional count"))
-              (mode . (string "Mode selection" ((enum . ["read" "write" "append"]))))
-              (tags . ((vector string) "Array of tags"))
-              (options . (alist "Configuration options")))
-```
-
-#### Supported Type Expressions
-- **Basic**: `string`, `integer`, `number`, `boolean`, `nil`
-- **Collections**: `(list type)`, `(vector type)`, `list`, `vector`, `alist`, `plist`
-- **Unions**: `(or type1 type2 ...)` - allows any of the specified types
-- **Intersections**: `(and type1 type2 ...)` - must satisfy all types
-- **Enums**: `(choice "val1" "val2" ...)` or `(member val1 val2 ...)`
-- **Repeated**: `(repeat type)` - array of the specified type
-- **Tuples**: `(cons type1 type2)` - fixed-length array with specific types
-
-#### Extended JSON Schema Properties
-You can add additional JSON Schema properties as a third element:
-```elisp
-:mcp-schema '((count . (integer "Number of items" ((minimum . 0) (maximum . 100))))
-              (name . (string "User name" ((minLength . 1) (maxLength . 50))))
-              (tags . ((list string) "Tags" ((minItems . 1) (uniqueItems . t)))))
-```
+#### Features
+- **JSON Schema Generation**: Types are converted to JSON Schema for MCP clients
+- **Type Validation**: Parameters validated against type specifications (currently disabled)  
+- **Clear Error Messages**: Descriptive validation errors when types don't match
+- **Emacs-Aware**: Supports Emacs-specific types like symbols for function names
 
 ### Security Guidelines
 - Validate all user inputs
