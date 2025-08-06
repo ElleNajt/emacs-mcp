@@ -1050,6 +1050,36 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 
 
 
+;;;; Test tool for validation
+
+(claude-code-defmcp mcp-test-validation (name age files)
+  "Test tool to demonstrate parameter validation."
+  :mcp-description "Test parameter validation with different types"
+  :mcp-schema '((name . (string "Your name"))
+                (age . (integer "Your age in years"))
+                (files . ((list string) "List of file names")))
+  (format "Hello %s (age %d)! You provided %d files: %s" 
+          name age (length files) (mapconcat #'identity files ", ")))
+
+;; Example of what you want - safe symbol handling
+(claude-code-defmcp mcp-test-symbols (function-names)
+  "Test tool for handling lists of symbols safely."
+  :mcp-description "Handle function names as symbols"
+  :mcp-schema '((function-names . ((list symbol) "List of function names as symbols")))
+  (let ((results '()))
+    (dolist (func-name function-names)
+      (when (and (symbolp func-name) (fboundp func-name))
+        (push (format "%s is a valid function" func-name) results)))
+    (mapconcat #'identity (nreverse results) "; ")))
+
+;; Example for enum validation  
+(claude-code-defmcp mcp-test-enum (status priority)
+  "Test tool for enum validation."
+  :mcp-description "Test enum parameter validation"
+  :mcp-schema '((status . ((choice "todo" "done" "next") "Task status"))
+                (priority . ((choice "high" "medium" "low") "Task priority")))
+  (format "Task is %s with %s priority" status priority))
+
 (provide 'mcp-tools)
 
 

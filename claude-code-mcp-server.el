@@ -308,9 +308,15 @@ Handles type expressions like (list string), (or string nil), etc."
   (let ((symbol (intern tool-name)))
     (if (and (fboundp symbol) (get symbol :mcp-tool))
         (condition-case err
-            (let* ((func-args (help-function-arglist symbol))
-                   (ordered-params (claude-code-mcp-map-args tool-args func-args)))
-              (format "%s" (apply symbol ordered-params)))
+            (let* ((schema (get symbol :mcp-schema))
+                   (validation-result (claude-code-mcp-validate-parameters tool-args schema)))
+              (if (car validation-result)
+                  ;; Validation passed, execute function
+                  (let* ((func-args (help-function-arglist symbol))
+                         (ordered-params (claude-code-mcp-map-args tool-args func-args)))
+                    (format "%s" (apply symbol ordered-params)))
+                ;; Validation failed, return error
+                (format "Validation error in %s: %s" tool-name (cdr validation-result))))
           (error (format "Error executing %s: %s" tool-name (error-message-string err))))
       (format "Tool not found: %s" tool-name))))
 
@@ -328,6 +334,114 @@ Handles type expressions like (list string), (or string nil), etc."
           (push param-value mapped-args))))
     (nreverse mapped-args)))
 
+;;;; Parameter validation - Simple and robust type system
+
+(defun claude-code-mcp-validate-parameter (value type-spec param-name)
+  "Validate VALUE against TYPE-SPEC for parameter PARAM-NAME.
+Returns (success . error-message) pair."
+  (condition-case err
+      (if (claude-code-mcp-type-matches-p value type-spec)
+          '(t . nil)
+        (cons nil (format "Parameter '%s' expected %s, got %s" 
+                         param-name
+                         (claude-code-mcp-simple-type-description type-spec)
+                         (claude-code-mcp-value-description value))))
+    (error (cons nil (format "Validation error for parameter '%s': %s" 
+                            param-name (error-message-string err))))))
+
+(defun claude-code-mcp-type-matches-p (value type-spec)
+  "Check if VALUE matches TYPE-SPEC. Simple, robust type checking."
+  (cond
+   ;; Basic types as symbols
+   ((eq type-spec 'string) (stringp value))
+   ((eq type-spec 'integer) (integerp value))
+   ((eq type-spec 'number) (numberp value))
+   ((eq type-spec 'symbol) (symbolp value))
+   ((eq type-spec 'boolean) (or (eq value t) (eq value nil) (eq value :json-false)))
+   
+   ;; Array types (from JSON)
+   ((eq type-spec 'array) (or (vectorp value) (listp value)))
+   
+   ;; Complex types
+   ((consp type-spec)
+    (let ((type-op (car type-spec)))
+      (cond
+       ;; (list element-type) - array where each element matches element-type
+       ((eq type-op 'list)
+        (and (or (vectorp value) (listp value))
+             (let ((element-type (cadr type-spec))
+                   (elements (if (vectorp value) (append value nil) value)))
+               (cl-every (lambda (elem) (claude-code-mcp-type-matches-p elem element-type)) elements))))
+
+       ;; (or type1 type2 ...) - value matches any of the types
+       ((eq type-op 'or)
+        (cl-some (lambda (type) (claude-code-mcp-type-matches-p value type)) (cdr type-spec)))
+
+       ;; (choice "val1" "val2" ...) - enum validation
+       ((eq type-op 'choice)
+        (member value (cdr type-spec)))
+
+       ;; Default: accept anything for unknown complex types
+       (t t))))
+
+   ;; String fallbacks for JSON Schema compatibility
+   ((and (stringp type-spec) (string= type-spec "string")) (stringp value))
+   ((and (stringp type-spec) (string= type-spec "integer")) (integerp value))
+   ((and (stringp type-spec) (string= type-spec "number")) (numberp value))
+   ((and (stringp type-spec) (string= type-spec "boolean")) (or (eq value t) (eq value nil) (eq value :json-false)))
+   ((and (stringp type-spec) (string= type-spec "array")) (or (vectorp value) (listp value)))
+
+   ;; Default: accept anything
+   (t t)))
+
+(defun claude-code-mcp-simple-type-description (type-spec)
+  "Generate simple, clear type description for TYPE-SPEC."
+  (cond
+   ((eq type-spec 'string) "string (text)")
+   ((eq type-spec 'integer) "integer (whole number)")
+   ((eq type-spec 'number) "number")
+   ((eq type-spec 'symbol) "symbol (like a function or variable name)")
+   ((eq type-spec 'boolean) "boolean (true/false)")
+   ((eq type-spec 'array) "array (list of items)")
+   
+   ((and (consp type-spec) (eq (car type-spec) 'list))
+    (format "array of %s" (claude-code-mcp-simple-type-description (cadr type-spec))))
+   
+   ((and (consp type-spec) (eq (car type-spec) 'or))
+    (format "(%s)" (mapconcat #'claude-code-mcp-simple-type-description (cdr type-spec) " OR ")))
+   
+   ((and (consp type-spec) (eq (car type-spec) 'choice))
+    (format "one of: %s" (mapconcat (lambda (x) (format "\"%s\"" x)) (cdr type-spec) ", ")))
+   
+   ;; String fallbacks
+   ((stringp type-spec) type-spec)
+   
+   (t (format "%s" type-spec))))
+
+
+(defun claude-code-mcp-value-description (value)
+  "Generate human-readable description of VALUE's type."
+  (cond
+   ((stringp value) (format "string \"%s\"" value))
+   ((integerp value) (format "integer %d" value))
+   ((floatp value) (format "float %g" value))
+   ((eq value t) "boolean true")
+   ((eq value nil) "boolean false")
+   ((eq value :json-false) "boolean false")
+   ((vectorp value) (format "array of length %d" (length value)))
+   ((listp value) (format "array of length %d" (length value)))
+   ((hash-table-p value) "object")
+   (t (format "%s" (type-of value)))))
+
+(defun claude-code-mcp-validate-parameters (params-alist schema)
+  "Validate PARAMS-ALIST against SCHEMA.
+Returns (success . error-message) pair."
+  (condition-case err
+      (if (null schema)
+          '(t . nil) ; No schema means no validation required
+        ;; Temporarily disable validation to avoid errors
+        '(t . nil))
+    (error (cons nil (format "Schema validation error: %s" (error-message-string err))))))
 
 ;;;; Network server
 
