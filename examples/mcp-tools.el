@@ -80,7 +80,7 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 (claude-code-defmcp mcp-get-agenda (&optional agenda-type)
                     "Get the org-agenda view and write it to /tmp/ClaudeWorkingFolder/agenda_<type>.txt."
                     :mcp-description "Get org-agenda view and save to file for analysis"
-                    :mcp-schema '((agenda-type . ("string" "Agenda type (default: 'a')")))
+                    :mcp-schema '((agenda-type . (string "Agenda type (default: 'a')")))
                     (let ((type (or agenda-type "a")))
                       (unless (file-directory-p "/tmp/ClaudeWorkingFolder")
                         (make-directory "/tmp/ClaudeWorkingFolder" t))
@@ -95,8 +95,8 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 (claude-code-defmcp mcp-org-agenda-todo-batch (batch-updates &optional agenda-type)
                     "Change the state of multiple agenda items in batch."
                     :mcp-description "Change the state of multiple agenda items in batch"
-                    :mcp-schema '((batch-updates . ("array" "List of [line-number, new-state] pairs"))
-                                  (agenda-type . ("string" "Agenda type to work with (default 'a')")))
+                    :mcp-schema '((batch-updates . ((list string) "List of [line-number, new-state] pairs"))
+                                  (agenda-type . (string "Agenda type to work with (default 'a')")))
                     (unless agenda-type (setq agenda-type "a"))
                     (save-window-excursion
                       (let ((org-agenda-window-setup 'current-window)
@@ -140,10 +140,10 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 (claude-code-defmcp mcp-org-schedule-todo (org-file heading-text schedule-date &optional remove-schedule)
                     "Schedule a TODO item by adding SCHEDULED property."
                     :mcp-description "Schedule a TODO item by adding SCHEDULED property"
-                    :mcp-schema '((org-file . ("string" "Path to the org file containing the heading"))
-                                  (heading-text . ("string" "Text of the heading to schedule"))
-                                  (schedule-date . ("string" "Date/time to schedule (e.g., '2025-01-15', 'today', '+1d')"))
-                                  (remove-schedule . ("boolean" "Remove existing schedule instead of setting one")))
+                    :mcp-schema '((org-file . (string "Path to the org file containing the heading"))
+                                  (heading-text . (string "Text of the heading to schedule"))
+                                  (schedule-date . (string "Date/time to schedule (e.g., '2025-01-15', 'today', '+1d')"))
+                                  (remove-schedule . (boolean "Remove existing schedule instead of setting one")))
                     (save-window-excursion
                       (find-file org-file)
                       (goto-char (point-min))
@@ -162,9 +162,9 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 (claude-code-defmcp mcp-org-archive-todo (org-file heading-text &optional archive-location)
                     "Archive a TODO item by moving it to the archive file."
                     :mcp-description "Archive a TODO item by moving it to the archive file"
-                    :mcp-schema '((org-file . ("string" "Path to the org file containing the heading"))
-                                  (heading-text . ("string" "Text of the heading to archive"))
-                                  (archive-location . ("string" "Archive location (optional)")))
+                    :mcp-schema '((org-file . (string "Path to the org file containing the heading"))
+                                  (heading-text . (string "Text of the heading to archive"))
+                                  (archive-location . (string "Archive location (optional)")))
                     (save-window-excursion
                       (find-file org-file)
                       (goto-char (point-min))
@@ -184,9 +184,9 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 (claude-code-defmcp mcp-org-capture (&optional template-key content immediate-finish)
                     "Add a new agenda item via org-capture mechanism."
                     :mcp-description "Add a new agenda item via org-capture mechanism"
-                    :mcp-schema '((template-key . ("string" "Capture template key (optional)"))
-                                  (content . ("string" "Content to capture (optional)"))
-                                  (immediate-finish . ("boolean" "Whether to immediately finish capture")))
+                    :mcp-schema '((template-key . (string "Capture template key (optional)"))
+                                  (content . (string "Content to capture (optional)"))
+                                  (immediate-finish . (boolean "Whether to immediately finish capture")))
                     (unless immediate-finish (setq immediate-finish t))
                     (cond
                      ((not template-key)
@@ -227,8 +227,8 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 (claude-code-defmcp mcp-org-get-all-todos (&optional include-done org-files)
                     "Get all TODO items from org files, including unscheduled ones."
                     :mcp-description "Get all TODO items from org files, including unscheduled ones"
-                    :mcp-schema '((include-done . ("boolean" "Include DONE items in results"))
-                                  (org-files . ("array" "Specific org files to search (defaults to org-agenda-files)")))
+                    :mcp-schema '((include-done . (boolean "Include DONE items in results"))
+                                  (org-files . ((list string) "Specific org files to search (defaults to org-agenda-files)")))
                     (unless (file-directory-p "/tmp/ClaudeWorkingFolder")
                       (make-directory "/tmp/ClaudeWorkingFolder" t))
 
@@ -264,10 +264,10 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 (claude-code-defmcp mcp-org-agenda-goto (target-type target &optional agenda-type context-lines)
                     "Go to the source location of an agenda item and return file path and content."
                     :mcp-description "Go to the source location of an agenda item and return file path and content"
-                    :mcp-schema '((target-type . ("string" "Either 'agenda_line' or 'agenda_text'"))
-                                  (target . ("string" "Either agenda line number (1-based) or agenda item text"))
-                                  (agenda-type . ("string" "Agenda type to work with (default 'a')"))
-                                  (context-lines . ("number" "Number of lines before/after to show for context")))
+                    :mcp-schema '((target-type . (string "Either 'agenda_line' or 'agenda_text'"))
+                                  (target . (string "Either agenda line number (1-based) or agenda item text"))
+                                  (agenda-type . (string "Agenda type to work with (default 'a')"))
+                                  (context-lines . (number "Number of lines before/after to show for context")))
                     (unless agenda-type (setq agenda-type "a"))
                     (unless context-lines (setq context-lines 5))
                     (unless (file-directory-p "/tmp/ClaudeWorkingFolder")
@@ -352,7 +352,7 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 (claude-code-defmcp mcp-open-file (file-paths)
                     "Open files in Emacs and return buffer names."
                     :mcp-description "Open one or more files in Emacs in the background"
-                    :mcp-schema '((file-paths . ("array" "List of file paths to open")))
+                    :mcp-schema '((file-paths . ((list string) "List of file paths to open")))
                     (let ((results '())
                           (blocked-files '()))
                       (dolist (file-path file-paths)
@@ -379,8 +379,7 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                     "Search for Emacs symbols, commands, or variables matching a pattern."
                     :mcp-description "Search for Emacs symbols using apropos functions"
                     :mcp-schema '((pattern . (string "Pattern to search for"))
-                                  (type . ((or string nil) "Type: all, commands, variables, functions" 
-                                          ((enum . ["all" "commands" "variables" "functions"]))))
+                                  (type . (mcp-search-type "Type: all, commands, variables, functions"))
                                   (predicate . ((or string nil) "Optional predicate for filtering")))
                     (let ((search-type (or type "all"))
                           (result ""))
@@ -417,8 +416,8 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 (claude-code-defmcp mcp-emacs-describe (symbol-names &optional type)
                     "Get comprehensive documentation for Emacs symbols."
                     :mcp-description "Get detailed documentation for one or more Emacs symbols"
-                    :mcp-schema '((symbol-names . ("array" "List of symbol names to describe"))
-                                  (type . ("string" "Type: function, variable, or symbol")))
+                    :mcp-schema '((symbol-names . ((list string) "List of symbol names to describe"))
+                                  (type . (string "Type: function, variable, or symbol")))
                     (let ((desc-type (or type "symbol"))
                           (results '()))
                       (dolist (symbol-name symbol-names)
@@ -465,8 +464,8 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 (claude-code-defmcp mcp-emacs-keymap-analysis (buffer-names &optional include-global)
                     "Dump keymaps for buffer contexts to files."
                     :mcp-description "Analyze keymaps for one or more buffer contexts"
-                    :mcp-schema '((buffer-names . ("array" "List of buffer names to analyze"))
-                                  (include-global . ("boolean" "Include global keymap analysis")))
+                    :mcp-schema '((buffer-names . ((list string) "List of buffer names to analyze"))
+                                  (include-global . (boolean "Include global keymap analysis")))
                     (unless (file-directory-p "/tmp/ClaudeWorkingFolder")
                       (make-directory "/tmp/ClaudeWorkingFolder" t))
 
@@ -523,9 +522,9 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 (claude-code-defmcp mcp-emacs-buffer-info (buffer-names &optional include-content include-variables)
                     "Get comprehensive buffer information and write to files."
                     :mcp-description "Get buffer info including content, mode details, and variables"
-                    :mcp-schema '((buffer-names . ("array" "List of buffer names to analyze"))
-                                  (include-content . ("boolean" "Include buffer content"))
-                                  (include-variables . ("boolean" "Include key variables")))
+                    :mcp-schema '((buffer-names . ((list string) "List of buffer names to analyze"))
+                                  (include-content . (boolean "Include buffer content"))
+                                  (include-variables . (boolean "Include key variables")))
                     (unless (file-directory-p "/tmp/ClaudeWorkingFolder")
                       (make-directory "/tmp/ClaudeWorkingFolder" t))
 
@@ -581,7 +580,7 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 (claude-code-defmcp mcp-check-parens (file-paths)
                     "Run check-parens on Lisp files to validate parentheses balance."
                     :mcp-description "Validate parentheses balance in Lisp code files"
-                    :mcp-schema '((file-paths . ("array" "List of file paths to check")))
+                    :mcp-schema '((file-paths . ((list string) "List of file paths to check")))
                     (let ((results '()))
                       (dolist (file-path file-paths)
                         (let* ((existing-buffer (find-buffer-visiting file-path))
@@ -606,7 +605,7 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 (claude-code-defmcp mcp-get-buffer-list (&optional include-details)
                     "Get a list of all live buffers in Emacs."
                     :mcp-description "Get list of all buffers with optional details"
-                    :mcp-schema '((include-details . ("boolean" "Include buffer details like file, size, modification status")))
+                    :mcp-schema '((include-details . (boolean "Include buffer details like file, size, modification status")))
                     (let ((buffers (buffer-list))
                           (result "=== BUFFER LIST ===\n")
                           (with-details (or include-details nil)))
@@ -636,7 +635,7 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 (claude-code-defmcp mcp-get-workspace-buffers (&optional workspace-name)
                     "Get buffers in workspaces and write to file."
                     :mcp-description "Get list of buffers in each workspace"
-                    :mcp-schema '((workspace-name . ("string" "Specific workspace name (optional)")))
+                    :mcp-schema '((workspace-name . (string "Specific workspace name (optional)")))
                     (unless (file-directory-p "/tmp/ClaudeWorkingFolder")
                       (make-directory "/tmp/ClaudeWorkingFolder" t))
 
@@ -687,8 +686,8 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 (claude-code-defmcp mcp-rename-workspace (workspace-identifier new-name)
                     "Rename a workspace by its slot number or current name."
                     :mcp-description "Rename a workspace by its slot number or current name"
-                    :mcp-schema '((workspace-identifier . ("string" "Current workspace name or slot number to rename"))
-                                  (new-name . ("string" "New name for the workspace")))
+                    :mcp-schema '((workspace-identifier . (string "Current workspace name or slot number to rename"))
+                                  (new-name . (string "New name for the workspace")))
                     (if (and (fboundp '+workspace/rename) (fboundp '+workspace-get))
                         (condition-case err
                             (let* ((current-workspace (+workspace-current))
@@ -727,7 +726,7 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 (claude-code-defmcp mcp-create-workspace (workspace-name)
                     "Create a new workspace with a given name."
                     :mcp-description "Create a new workspace with a given name"
-                    :mcp-schema '((workspace-name . ("string" "Name for the new workspace")))
+                    :mcp-schema '((workspace-name . (string "Name for the new workspace")))
                     (if (fboundp '+workspace-new)
                         (condition-case err
                             (progn
@@ -739,7 +738,7 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 (claude-code-defmcp mcp-delete-workspace (workspace-identifier)
                     "Delete a workspace by name or identifier."
                     :mcp-description "Delete a workspace by name or identifier"
-                    :mcp-schema '((workspace-identifier . ("string" "Workspace name or identifier to delete")))
+                    :mcp-schema '((workspace-identifier . (string "Workspace name or identifier to delete")))
                     (if (and (fboundp 'persp-kill) (fboundp '+workspace-list-names))
                         (condition-case err
                             (let* ((workspace-names (+workspace-list-names))
@@ -783,8 +782,8 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 (claude-code-defmcp mcp-move-protected-buffers-to-workspace (source-workspace target-workspace)
                     "Move all protected buffers from one workspace to another."
                     :mcp-description "Move all protected buffers (Claude Code sessions, terminals, etc.) from one workspace to another"
-                    :mcp-schema '((source-workspace . ("string" "Workspace containing protected buffers to move"))
-                                  (target-workspace . ("string" "Workspace to move protected buffers to")))
+                    :mcp-schema '((source-workspace . (string "Workspace containing protected buffers to move"))
+                                  (target-workspace . (string "Workspace to move protected buffers to")))
                     (if (and (fboundp '+workspace-list-names) (fboundp '+workspace-buffer-list))
                         (condition-case err
                             (let* ((workspace-names (+workspace-list-names)))
@@ -839,7 +838,7 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 (claude-code-defmcp mcp-setup-workspace-layout (workspace-name layout)
                     "Set up window layout for a workspace without switching away from current workspace."
                     :mcp-description "Set up window layout for a workspace without switching away from current workspace"
-                    :mcp-schema '((workspace-name . ("string" "Name of the workspace to configure"))
+                    :mcp-schema '((workspace-name . (string "Name of the workspace to configure"))
                                   (layout . ("object" "Layout configuration with primary_buffer, secondary_buffer, split_direction")))
                     (condition-case err
                         (let ((current-workspace (+workspace-current-name))
@@ -885,7 +884,7 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 (claude-code-defmcp mcp-view-buffer (buffer-names)
                     "Get buffer contents and write each to separate files."
                     :mcp-description "View buffer contents by writing to individual files"
-                    :mcp-schema '((buffer-names . ("array" "List of buffer names to view")))
+                    :mcp-schema '((buffer-names . ((list string) "List of buffer names to view")))
                     (unless (file-directory-p "/tmp/ClaudeWorkingFolder")
                       (make-directory "/tmp/ClaudeWorkingFolder" t))
 
@@ -922,9 +921,9 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 (claude-code-defmcp mcp-count-parens (file-path start-line end-line)
                     "Count opening and closing parentheses between two lines in a file."
                     :mcp-description "Count opening and closing parentheses between two lines in a file"
-                    :mcp-schema '((file-path . ("string" "Path to the file to analyze"))
-                                  (start-line . ("number" "Starting line number (1-based)"))
-                                  (end-line . ("number" "Ending line number (1-based)")))
+                    :mcp-schema '((file-path . (string "Path to the file to analyze"))
+                                  (start-line . (number "Starting line number (1-based)"))
+                                  (end-line . (number "Ending line number (1-based)")))
                     (if (file-exists-p file-path)
                         (with-temp-buffer
                           (insert-file-contents file-path)
@@ -965,9 +964,9 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 (claude-code-defmcp mcp-check-parens-range (file-path start-line end-line)
                     "Check parentheses balance in a specific line range by copying to scratch buffer."
                     :mcp-description "Check parentheses balance in a specific line range by copying to scratch buffer"
-                    :mcp-schema '((file-path . ("string" "Path to the file to analyze"))
-                                  (start-line . ("number" "Starting line number (1-based)"))
-                                  (end-line . ("number" "Ending line number (1-based)")))
+                    :mcp-schema '((file-path . (string "Path to the file to analyze"))
+                                  (start-line . (number "Starting line number (1-based)"))
+                                  (end-line . (number "Ending line number (1-based)")))
                     (if (file-exists-p file-path)
                         (with-temp-buffer
                           (insert-file-contents file-path)
@@ -982,11 +981,11 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                                 (condition-case err
                                     (progn
                                       (check-parens)
-                                      (format "%s (lines %d-%d): Parentheses are balanced correctly" 
+                                      (format "%s (lines %d-%d): Parentheses are balanced correctly"
                                               file-path start-line end-line))
                                   (error
                                    (format "%s (lines %d-%d): Parentheses error at line %d, column %d: %s"
-                                           file-path 
+                                           file-path
                                            (+ start-line (line-number-at-pos (point)) -2)
                                            end-line
                                            (+ start-line (line-number-at-pos (point)) -2)
@@ -997,9 +996,9 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 (claude-code-defmcp mcp-show-paren-balance (file-path start-line end-line)
                     "Show running parentheses balance count at the beginning of each line."
                     :mcp-description "Show running parentheses balance count at the beginning of each line"
-                    :mcp-schema '((file-path . ("string" "Path to the file to analyze"))
-                                  (start-line . ("number" "Starting line number (1-based)"))
-                                  (end-line . ("number" "Ending line number (1-based)")))
+                    :mcp-schema '((file-path . (string "Path to the file to analyze"))
+                                  (start-line . (number "Starting line number (1-based)"))
+                                  (end-line . (number "Ending line number (1-based)")))
                     (if (file-exists-p file-path)
                         (with-temp-buffer
                           (insert-file-contents file-path)
@@ -1032,9 +1031,9 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                                   (forward-char 1))
                                 ;; Add line with balance info
                                 (let ((line-content (buffer-substring line-start (point))))
-                                  (setq result (concat result 
-                                                       (format "%4d [%+3d]: %s\n" 
-                                                               current-line 
+                                  (setq result (concat result
+                                                       (format "%4d [%+3d]: %s\n"
+                                                               current-line
                                                                line-balance
                                                                (string-trim-right line-content)))))
                                 ;; Reset comment state at newline
@@ -1053,32 +1052,32 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 ;;;; Test tool for validation
 
 (claude-code-defmcp mcp-test-validation (name age files)
-  "Test tool to demonstrate parameter validation."
-  :mcp-description "Test parameter validation with different types"
-  :mcp-schema '((name . (string "Your name"))
-                (age . (integer "Your age in years"))
-                (files . ((list string) "List of file names")))
-  (format "Hello %s (age %d)! You provided %d files: %s" 
-          name age (length files) (mapconcat #'identity files ", ")))
+                    "Test tool to demonstrate parameter validation."
+                    :mcp-description "Test parameter validation with different types"
+                    :mcp-schema '((name . (string "Your name"))
+                                  (age . (integer "Your age in years"))
+                                  (files . ((list string) "List of file names")))
+                    (format "Hello %s (age %d)! You provided %d files: %s"
+                            name age (length files) (mapconcat #'identity files ", ")))
 
 ;; Example of what you want - safe symbol handling
 (claude-code-defmcp mcp-test-symbols (function-names)
-  "Test tool for handling lists of symbols safely."
-  :mcp-description "Handle function names as symbols"
-  :mcp-schema '((function-names . ((list symbol) "List of function names as symbols")))
-  (let ((results '()))
-    (dolist (func-name function-names)
-      (when (and (symbolp func-name) (fboundp func-name))
-        (push (format "%s is a valid function" func-name) results)))
-    (mapconcat #'identity (nreverse results) "; ")))
+                    "Test tool for handling lists of symbols safely."
+                    :mcp-description "Handle function names as symbols"
+                    :mcp-schema '((function-names . ((list symbol) "List of function names as symbols")))
+                    (let ((results '()))
+                      (dolist (func-name function-names)
+                        (when (and (symbolp func-name) (fboundp func-name))
+                          (push (format "%s is a valid function" func-name) results)))
+                      (mapconcat #'identity (nreverse results) "; ")))
 
-;; Example for enum validation  
+;; Example for enum validation using cl-deftype
 (claude-code-defmcp mcp-test-enum (status priority)
-  "Test tool for enum validation."
-  :mcp-description "Test enum parameter validation"
-  :mcp-schema '((status . ((choice "todo" "done" "next") "Task status"))
-                (priority . ((choice "high" "medium" "low") "Task priority")))
-  (format "Task is %s with %s priority" status priority))
+                    "Test tool for enum validation using cl-deftype."
+                    :mcp-description "Test enum parameter validation with predefined types"
+                    :mcp-schema '((status . (mcp-todo-status "Task status"))
+                                  (priority . (mcp-priority "Task priority")))
+                    (format "Task is %s with %s priority" status priority))
 
 (provide 'mcp-tools)
 

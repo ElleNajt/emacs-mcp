@@ -45,6 +45,12 @@ This project provides:
   - Tool discovery and execution framework
   - Security validation
 
+- **`claude-code-mcp-types.el`**: Type system and validation
+  - JSON Schema generation from Emacs Lisp type specs
+  - Parameter validation with configurable enable/disable
+  - Support for cl-deftype enums and complex types
+  - Clear error messages for type mismatches
+
 - **`mcp-proxy.sh`**: Ultra-thin proxy that bridges stdio to TCP
   - Uses `nc` to connect Claude Code CLI to Emacs MCP server
   - Enables standard MCP client integration
@@ -136,6 +142,15 @@ These tools show how the type system validates parameters and provides clear err
 (setq claude-code-mcp-port 8765)
 ```
 
+### Type System Settings
+```elisp
+;; Enable/disable parameter validation (default: t)
+(setq claude-code-mcp-enable-validation t)
+
+;; When disabled, all validation is bypassed for performance or debugging
+(setq claude-code-mcp-enable-validation nil)
+```
+
 ### Security Settings
 ```elisp
 ;; File access restrictions (default: t)
@@ -194,7 +209,7 @@ Check server status and view client connections through the `claude-code-mcp-ser
 2. **Permission denied**: Add `/tmp/ClaudeWorkingFolder` to Claude Code settings
 3. **Port conflicts**: Change `claude-code-mcp-port` to available port
 4. **Connection issues**: Check proxy script permissions and nc availability
-5. **Validation errors**: Currently disabled - tools work without type checking
+5. **Validation errors**: Toggle validation with `claude-code-mcp-enable-validation` or fix type schemas
 
 ### Debugging
 - Check `*Messages*` buffer for server logs
@@ -223,29 +238,33 @@ Check server status and view client connections through the `claude-code-mcp-ser
 3. Return well-formatted prompts with clear instructions
 4. Include examples and specific guidance
 
-### Type System
+### Simplified Type System
 
-The MCP server supports rich type specifications for parameter validation:
+The MCP server uses a simplified type system focused on practical use cases:
 
 #### Supported Types
 - **Basic**: `string`, `integer`, `number`, `boolean`, `symbol`
-- **Collections**: `(list type)` - arrays with element validation
-- **Optional**: `(or type nil)` - allows missing/null values  
-- **Enums**: `(choice "val1" "val2" ...)` - specific allowed values
+- **Arrays**: `(list type)` - arrays where each element is validated
+- **Optional**: `(or type nil)` - allows nil/missing values  
+- **Enums**: `(choice "val1" "val2" ...)` - specific allowed values only
+- **Predefined Types**: `cl-deftype` enums like `mcp-search-type`, `mcp-priority`
 
 #### Schema Format
 ```elisp
-:mcp-schema '((name . (string "Description"))
-              (files . ((list string) "Array of file paths"))
+:mcp-schema '((name . (string "User name"))
+              (files . ((list string) "Array of file paths"))  
               (status . ((choice "active" "inactive") "Status choice"))
+              (priority . (mcp-priority "Task priority"))
               (count . ((or integer nil) "Optional number")))
 ```
 
 #### Features
-- **JSON Schema Generation**: Types are converted to JSON Schema for MCP clients
-- **Type Validation**: Parameters validated against type specifications (currently disabled)  
-- **Clear Error Messages**: Descriptive validation errors when types don't match
-- **Emacs-Aware**: Supports Emacs-specific types like symbols for function names
+- **Simple & Clean**: Only the types actually used by existing tools
+- **JSON Schema Generation**: Automatic conversion to JSON Schema for MCP clients
+- **Parameter Validation**: Real-time validation with clear error messages (configurable)
+- **Emacs-Aware**: Supports Emacs symbols for function names and variables
+- **Extensible**: Define custom enum types with `cl-deftype` for reusable validation
+- **Performance Toggle**: Disable validation entirely via `claude-code-mcp-enable-validation`
 
 ### Security Guidelines
 - Validate all user inputs
