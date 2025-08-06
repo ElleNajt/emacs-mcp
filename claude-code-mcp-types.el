@@ -162,20 +162,20 @@ Returns (success . error-message) pair."
    ((eq type-spec 'string) (stringp value))
    ((eq type-spec 'integer) (integerp value))
    ((eq type-spec 'number) (numberp value))
-   ((eq type-spec 'boolean) (or (eq value t) (eq value nil) (eq value :json-false)))
+   ((eq type-spec 'boolean) (or (eq value t) (eq value nil) (eq value :json-false) (eq value :false) (eq value :true)))
    ((eq type-spec 'symbol) (symbolp value))
    
    ;; Check for cl-deftype definitions
    ((and (symbolp type-spec) (get type-spec 'cl-deftype-handler))
     (condition-case nil
-        (progn (cl-check-type value type-spec) t)
-      (wrong-type-argument nil)))
+        (cl-typep value type-spec)
+      (error nil)))
    
    ;; String fallbacks (backward compatibility)
    ((and (stringp type-spec) (string= type-spec "string")) (stringp value))
    ((and (stringp type-spec) (string= type-spec "integer")) (integerp value))
    ((and (stringp type-spec) (string= type-spec "number")) (numberp value))
-   ((and (stringp type-spec) (string= type-spec "boolean")) (or (eq value t) (eq value nil) (eq value :json-false)))
+   ((and (stringp type-spec) (string= type-spec "boolean")) (or (eq value t) (eq value nil) (eq value :json-false) (eq value :false) (eq value :true)))
    ((and (stringp type-spec) (string= type-spec "array")) (or (vectorp value) (listp value)))
    
    ;; Complex types
@@ -244,6 +244,8 @@ Returns (success . error-message) pair."
    ((eq value t) "boolean true")
    ((eq value nil) "boolean false")
    ((eq value :json-false) "boolean false")
+   ((eq value :true) "boolean true")
+   ((eq value :false) "boolean false")
    ((vectorp value) (format "array of length %d" (length value)))
    ((listp value) (format "array of length %d" (length value)))
    ((hash-table-p value) "object")
@@ -255,13 +257,16 @@ Returns (success . error-message) pair."
   (condition-case err
       (if (or (null schema) (not claude-code-mcp-enable-validation))
           '(t . nil) ; No schema or validation disabled
+        ;; Handle quoted schemas
+        (when (and (consp schema) (eq (car schema) 'quote))
+          (setq schema (cadr schema)))
         ;; Perform actual validation when enabled
         (let ((errors '()))
           (dolist (param-spec schema)
             (when (and (consp param-spec) (>= (length param-spec) 2))
-              (let* ((param-name (car param-spec))
-                     (param-type (cadr param-spec))
-                     (param-desc (caddr param-spec))
+              (let* ((param-name (car param-spec))     ; e.g., buffer-names
+                     (param-type (cadr param-spec))    ; e.g., (list string)
+                     (param-desc (caddr param-spec))   ; e.g., "List of buffer names to analyze"
                      (param-key (symbol-name param-name))
                      (param-value (alist-get (intern param-key) params-alist))
                      (validation-result (claude-code-mcp-validate-parameter param-value param-type param-name)))
