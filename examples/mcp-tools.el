@@ -58,7 +58,7 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 (claude-code-defmcp mcp-hello-world (name)
                     "Greet someone with a friendly hello message."
                     :mcp-description "Greet someone with a friendly hello message"
-                    :mcp-schema '((name . ("string" "Name of person to greet")))
+                    :mcp-schema '((name . (string "Name of person to greet")))
                     (format "Hello, %s! 👋" name))
 
 ;;;; Emacs Variable Access
@@ -66,7 +66,7 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 (claude-code-defmcp mcp-get-variable-value (variable-names)
                     "Get the current value of one or more Emacs variables."
                     :mcp-description "Get the current value of one or more Emacs variables"
-                    :mcp-schema '((variable-names . ("array" "List of variable names to query")))
+                    :mcp-schema '((variable-names . ((list string) "List of variable names to query")))
                     (let ((results '()))
                       (dolist (var-name variable-names)
                         (let ((var-symbol (intern var-name)))
@@ -378,9 +378,10 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 (claude-code-defmcp mcp-emacs-search (pattern &optional type predicate)
                     "Search for Emacs symbols, commands, or variables matching a pattern."
                     :mcp-description "Search for Emacs symbols using apropos functions"
-                    :mcp-schema '((pattern . ("string" "Pattern to search for"))
-                                  (type . ("string" "Type: all, commands, variables, functions"))
-                                  (predicate . ("string" "Optional predicate for filtering")))
+                    :mcp-schema '((pattern . (string "Pattern to search for"))
+                                  (type . ((or string nil) "Type: all, commands, variables, functions" 
+                                          ((enum . ["all" "commands" "variables" "functions"]))))
+                                  (predicate . ((or string nil) "Optional predicate for filtering")))
                     (let ((search-type (or type "all"))
                           (result ""))
                       (cond
@@ -1046,6 +1047,8 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                               (write-region result nil output-file)
                               (format "Parentheses balance written to %s (final balance: %+d)" output-file balance))))
                       (format "File not found: %s" file-path)))
+
+
 
 (provide 'mcp-tools)
 

@@ -1,6 +1,6 @@
 # MCP Tools Usage Guide for Claude
 
-This guide provides instructions for using the Emacs MCP tools and creating new ones. While written for Claude, humans may find it helpful for understanding tool usage patterns.
+This guide provides instructions for using the Emacs MCP implementation tools. While written for Claude, humans may find it helpful for understanding usage patterns.
 
 ## Using MCP Tools
 
@@ -211,7 +211,8 @@ The MCP server provides tools to interact with Emacs. These tools must be loaded
 - **Returns**: Success confirmation with layout details
 - **Usage**: Set up optimal workspace layouts, prepare workspaces with specific buffer arrangements
 
-### Creating Custom MCP Tools
+
+## Creating Custom MCP Tools
 
 Use the `claude-code-defmcp` macro to define new tools:
 
@@ -225,11 +226,40 @@ Use the `claude-code-defmcp` macro to define new tools:
   (format "Result: %s, %s" param1 param2))
 ```
 
-#### Schema Format
-The `:mcp-schema` uses a simplified format:
-- `'((name . ("type" "description")))` for each parameter
-- Types: "string", "number", "boolean", "array", "object"
-- Empty schema `'()` for functions with no parameters
+#### Schema Format and Type System
+
+The `:mcp-schema` now supports rich Emacs Lisp-style type specifications:
+
+**Basic format**: `'((param-name . (type "description")))`
+
+**Examples**:
+```elisp
+;; Simple types
+:mcp-schema '((name . (string "User name"))
+              (count . (integer "Number of items"))
+              (active . (boolean "Active flag")))
+
+;; Array types with element specification
+:mcp-schema '((files . ((list string) "List of file paths"))
+              (numbers . ((vector integer) "Array of integers")))
+
+;; Optional parameters using union types
+:mcp-schema '((limit . ((or integer nil) "Optional limit"))
+              (filter . ((or string nil) "Optional filter")))
+
+;; Enums with extra properties
+:mcp-schema '((mode . (string "Operation mode" ((enum . ["read" "write" "append"]))))
+              (level . (integer "Level" ((minimum . 1) (maximum . 10)))))
+```
+
+**Supported type expressions**:
+- Basic: `string`, `integer`, `number`, `boolean`, `nil`
+- Lists: `(list element-type)`, `(vector element-type)`
+- Unions: `(or type1 type2 ...)` for optional or multiple types
+- Enums: Use extra properties `((enum . [values...]))`
+- Objects: `alist`, `plist`, `hash-table`
+
+Empty schema `'()` for functions with no parameters.
 
 ### Server Management Commands
 
@@ -360,6 +390,9 @@ When debugging parentheses balance issues in Elisp code, use these MCP tools:
 2. **Section analysis**: Use `mcp-count-parens` to analyze specific functions or code blocks
 3. **Iterative fixing**: Fix one unmatched bracket at a time, re-checking after each fix
 4. **Function boundaries**: Ensure each complete function definition has net balance of 0
+
+
+What you should do is run the parens counting on the whole file, then look around the defuns and find the ones that are not 0 before themn, and add parens to the previou sfunctions.
 
 ### Example Usage
 

@@ -35,6 +35,8 @@
 (defvar claude-code-mcp-client-connections nil
   "List of active MCP client connections.")
 
+
+
 ;;;; MCP Tool definition macro
 
 (defmacro claude-code-defmcp (name args docstring &rest body-and-properties)
@@ -92,12 +94,12 @@ The remaining BODY-AND-PROPERTIES can contain :mcp-description, :mcp-schema, and
             (claude-code-mcp-send-response process response))))
     (error
      (let ((request-id (or (ignore-errors 
-                            (alist-get 'id (json-parse-string message-string :object-type 'alist))) 
+                             (alist-get 'id (json-parse-string message-string :object-type 'alist)))
                            nil))
            (error-response `((jsonrpc . "2.0")
-                            (id . ,request-id)
-                            (error . ((code . -32603)
-                                     (message . ,(format "Internal error: %s" (error-message-string err))))))))
+                             (id . ,request-id)
+                             (error . ((code . -32603)
+                                       (message . ,(format "Internal error: %s" (error-message-string err))))))))
        (claude-code-mcp-send-response process error-response)))))
 
 (defun claude-code-mcp-handle-method (method id params)
@@ -108,9 +110,9 @@ The remaining BODY-AND-PROPERTIES can contain :mcp-description, :mcp-schema, and
     `((jsonrpc . "2.0")
       (id . ,id)
       (result . ((protocolVersion . "2024-11-05")
-                (capabilities . ((tools . ((listChanged . t)))))
-                (serverInfo . ((name . "emacs-mcp-server")
-                              (version . "1.0.0")))))))
+                 (capabilities . ((tools . ((listChanged . t)))))
+                 (serverInfo . ((name . "emacs-mcp-server")
+                                (version . "1.0.0")))))))
 
    ;; List available tools
    ((string= method "tools/list")
@@ -127,14 +129,16 @@ The remaining BODY-AND-PROPERTIES can contain :mcp-description, :mcp-schema, and
       `((jsonrpc . "2.0")
         (id . ,id)
         (result . ((content . [((type . "text")
-                               (text . ,result))]))))))
+                                (text . ,result))]))))))
+
+
 
    ;; Method not found
    (t
     `((jsonrpc . "2.0")
       (id . ,id)
       (error . ((code . -32601)
-               (message . ,(format "Method not found: %s" method))))))))
+                (message . ,(format "Method not found: %s" method))))))))
 
 ;;;; Tool discovery and execution
 
@@ -147,7 +151,7 @@ The remaining BODY-AND-PROPERTIES can contain :mcp-description, :mcp-schema, and
                   (get symbol :mcp-tool))
          (let* ((name (symbol-name symbol))
                 (description (or (get symbol :mcp-description) 
-                                (format "MCP tool: %s" name)))
+                                 (format "MCP tool: %s" name)))
                 (schema (or (get symbol :mcp-schema) '()))
                 (input-schema (claude-code-mcp-build-json-schema schema)))
            (push `((name . ,name)
@@ -157,7 +161,8 @@ The remaining BODY-AND-PROPERTIES can contain :mcp-description, :mcp-schema, and
     (nreverse tools)))
 
 (defun claude-code-mcp-build-json-schema (schema)
-  "Build JSON Schema from simplified schema format."
+  "Build JSON Schema from Emacs Lisp type specifications.
+Supports both simple and complex type specifications."
   ;; Handle quoted schemas
   (when (and (consp schema) (eq (car schema) 'quote))
     (setq schema (cadr schema)))
@@ -170,24 +175,29 @@ The remaining BODY-AND-PROPERTIES can contain :mcp-description, :mcp-schema, and
       (required . ,(vector))
       (additionalProperties . :json-false)))
    
-   ;; Simplified format - list of (name type description) tuples
+   ;; Enhanced format with proper type specifications
    ((listp schema)
     (let ((properties (make-hash-table :test 'equal))
           (required '()))
       (dolist (item schema)
         (cond
-         ;; (name . ("type" "description")) format  
+         ;; Enhanced format: (name type description &optional schema-props)
          ((and (consp item) (>= (length item) 2))
-          (let ((param-name (symbol-name (car item)))
-                (param-info (cdr item)))
-            (when (and (listp param-info) (>= (length param-info) 1))
-              (let ((param-type (car param-info))
-                    (param-desc (cadr param-info)))
-                (push param-name required)
-                (if param-desc
-                    (puthash param-name `((type . ,param-type)
-                                         (description . ,param-desc)) properties)
-                  (puthash param-name `((type . ,param-type)) properties))))))))
+          (let* ((param-name (symbol-name (car item)))
+                 (param-spec (cdr item))
+                 (param-type (car param-spec))
+                 (param-desc (cadr param-spec))
+                 (extra-props (cddr param-spec)))
+            (push param-name required)
+            
+            ;; Convert Elisp type specs to JSON Schema
+            (let ((json-type (claude-code-mcp-type-to-json-schema param-type)))
+              (when param-desc
+                (setq json-type (append json-type `((description . ,param-desc)))))
+              ;; Add any extra JSON Schema properties
+              (when extra-props
+                (setq json-type (append json-type (car extra-props))))
+              (puthash param-name json-type properties))))))
       
       `((type . "object")
         (properties . ,properties)
@@ -199,6 +209,99 @@ The remaining BODY-AND-PROPERTIES can contain :mcp-description, :mcp-schema, and
         (properties . ,(make-hash-table :test 'equal))
         (required . ,(vector))
         (additionalProperties . :json-false)))))
+
+(defun claude-code-mcp-type-to-json-schema (type-spec)
+  "Convert Emacs Lisp type specification to JSON Schema.
+Handles type expressions like (list string), (or string nil), etc."
+  (cond
+   ;; Simple string type names
+   ((stringp type-spec)
+    (cond
+     ((string= type-spec "string") '((type . "string")))
+     ((string= type-spec "number") '((type . "number")))
+     ((string= type-spec "integer") '((type . "integer")))
+     ((string= type-spec "boolean") '((type . "boolean")))
+     ((string= type-spec "array") '((type . "array")))
+     ((string= type-spec "object") '((type . "object")))
+     (t '((type . "string"))))) ; Default fallback
+   
+   ;; Symbol type names
+   ((symbolp type-spec)
+    (cond
+     ((eq type-spec 'string) '((type . "string")))
+     ((eq type-spec 'number) '((type . "number")))
+     ((eq type-spec 'integer) '((type . "integer")))
+     ((eq type-spec 'float) '((type . "number")))
+     ((eq type-spec 'boolean) '((type . "boolean")))
+     ((eq type-spec 'bool) '((type . "boolean")))
+     ((eq type-spec 't) '((type . "boolean")))
+     ((eq type-spec 'nil) '((type . "null")))
+     ((eq type-spec 'list) '((type . "array")))
+     ((eq type-spec 'vector) '((type . "array")))
+     ((eq type-spec 'hash-table) '((type . "object")))
+     ((eq type-spec 'alist) '((type . "object")))
+     ((eq type-spec 'plist) '((type . "object")))
+     (t '((type . "string"))))) ; Default for unknown symbols
+   
+   ;; Complex type expressions
+   ((consp type-spec)
+    (let ((type-op (car type-spec)))
+      (cond
+       ;; (list element-type) -> array of element-type
+       ((eq type-op 'list)
+        (if (cdr type-spec)
+            `((type . "array")
+              (items . ,(claude-code-mcp-type-to-json-schema (cadr type-spec))))
+          '((type . "array"))))
+       
+       ;; (vector element-type) -> array of element-type
+       ((eq type-op 'vector)
+        (if (cdr type-spec)
+            `((type . "array")
+              (items . ,(claude-code-mcp-type-to-json-schema (cadr type-spec))))
+          '((type . "array"))))
+       
+       ;; (or type1 type2 ...) -> anyOf
+       ((eq type-op 'or)
+        (let ((types (mapcar #'claude-code-mcp-type-to-json-schema (cdr type-spec))))
+          (if (= (length types) 1)
+              (car types)
+            `((anyOf . ,(apply #'vector types))))))
+       
+       ;; (and type1 type2 ...) -> allOf
+       ((eq type-op 'and)
+        (let ((types (mapcar #'claude-code-mcp-type-to-json-schema (cdr type-spec))))
+          (if (= (length types) 1)
+              (car types)
+            `((allOf . ,(apply #'vector types))))))
+       
+       ;; (choice "val1" "val2" ...) -> enum
+       ((eq type-op 'choice)
+        `((type . "string")
+          (enum . ,(apply #'vector (cdr type-spec)))))
+       
+       ;; (member val1 val2 ...) -> enum
+       ((eq type-op 'member)
+        `((enum . ,(apply #'vector (cdr type-spec)))))
+       
+       ;; (repeat type) -> array of type
+       ((eq type-op 'repeat)
+        `((type . "array")
+          (items . ,(claude-code-mcp-type-to-json-schema (cadr type-spec)))))
+       
+       ;; (cons type1 type2) -> tuple
+       ((eq type-op 'cons)
+        `((type . "array")
+          (items . ,(vector (claude-code-mcp-type-to-json-schema (cadr type-spec))
+                            (claude-code-mcp-type-to-json-schema (caddr type-spec))))
+          (minItems . 2)
+          (maxItems . 2)))
+       
+       ;; Default: treat as object
+       (t '((type . "object"))))))
+   
+   ;; Default fallback
+   (t '((type . "string")))))
 
 (defun claude-code-mcp-call-tool (tool-name tool-args)
   "Call MCP tool TOOL-NAME with TOOL-ARGS."
@@ -224,6 +327,7 @@ The remaining BODY-AND-PROPERTIES can contain :mcp-description, :mcp-schema, and
             (setq param-value (append param-value nil)))
           (push param-value mapped-args))))
     (nreverse mapped-args)))
+
 
 ;;;; Network server
 
@@ -269,7 +373,7 @@ PROCESS is the server process receiving data, STRING is the received data."
   (interactive)
   (when (and claude-code-mcp-enabled
              (not (and claude-code-mcp-server-process
-                      (process-live-p claude-code-mcp-server-process))))
+                       (process-live-p claude-code-mcp-server-process))))
     (setq claude-code-mcp-server-process
           (make-network-process
            :name "claude-code-mcp"
