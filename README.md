@@ -288,4 +288,5 @@ Contributions welcome! Focus areas:
 
 - [Model Context Protocol](https://github.com/modelcontextprotocol/specification)
 - [Claude Code CLI](https://github.com/anthropics/claude-code)
+- [mcp-server-lib.el](https://github.com/laurynas-biveinis/mcp-server-lib.el) - Another Emacs Lisp MCP server implementation
 - [Emacs](https://www.gnu.org/software/emacs/)
