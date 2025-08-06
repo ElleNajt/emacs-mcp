@@ -14,7 +14,13 @@
 
 (require 'json)
 (require 'cl-lib)
-(require 'claude-code-mcp-types)
+
+;; Conditionally load type system module
+(cl-eval-when (load eval)
+  (let ((types-file (expand-file-name "claude-code-mcp-types.el" 
+                                      (file-name-directory (or load-file-name buffer-file-name)))))
+    (when (file-exists-p types-file)
+      (load types-file nil t))))
 
 ;;;; Configuration
 
