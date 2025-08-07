@@ -218,16 +218,39 @@ New format: :parameters ((:name \"param\" :type \"string\" :required t :descript
 
 (defun claude-code-mcp-map-args (params-alist func-args)
   "Map PARAMS-ALIST to FUNC-ARGS order."
-  (let ((mapped-args '()))
+  (let ((mapped-args '())
+        (in-rest nil))
     (dolist (arg-spec func-args)
-      (unless (memq arg-spec '(&optional &rest &key))
+      (cond
+       ;; Handle &rest parameters
+       ((eq arg-spec '&rest)
+        (setq in-rest t))
+       ;; Skip other special markers
+       ((memq arg-spec '(&optional &key)))
+       ;; Handle regular and rest arguments
+       (t
         (let* ((arg-name (if (listp arg-spec) (car arg-spec) arg-spec))
                (arg-key (symbol-name arg-name))
                (param-value (alist-get (intern arg-key) params-alist)))
           ;; Convert JSON arrays (vectors) to Lisp lists
           (when (vectorp param-value)
             (setq param-value (append param-value nil)))
-          (push param-value mapped-args))))
+          ;; Convert JSON string arrays to Lisp lists
+          (when (and (stringp param-value)
+                     (string-prefix-p "[" param-value)
+                     (string-suffix-p "]" param-value))
+            (condition-case nil
+                (setq param-value (append (json-parse-string param-value) nil))
+              (error nil))) ; If parsing fails, keep as string
+          ;; For &rest parameters, only add if value is not nil (wasn't provided)
+          (if in-rest
+              (when (and param-value (not (equal param-value '())))
+                ;; For rest params, spread the list
+                (if (listp param-value)
+                    (setq mapped-args (append mapped-args param-value))
+                  (push param-value mapped-args)))
+            ;; For regular parameters, always add (can be nil)
+            (push param-value mapped-args))))))
     (nreverse mapped-args)))
 
 ;;;; Network server
