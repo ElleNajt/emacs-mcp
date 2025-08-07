@@ -73,23 +73,19 @@ Returns an alist in the old format:
 (defmacro claude-code-defmcp (name args docstring &rest body-and-properties)
   "Define an MCP tool function with embedded properties.
 NAME is the function name, ARGS is the argument list, DOCSTRING is the documentation.
-The remaining BODY-AND-PROPERTIES can contain :description, :parameters/:mcp-schema, and function body.
+The DOCSTRING is automatically used as the MCP tool description.
+The remaining BODY-AND-PROPERTIES can contain :parameters/:mcp-schema and function body.
 
 Supports two schema formats:
 Old format: :mcp-schema '((param . (type \"description\")))
 New format: :parameters ((:name \"param\" :type \"string\" :required t :description \"desc\"))"
-  (let ((description nil)
-        (schema nil)
+  (let ((schema nil)
         (body '()))
     
     ;; Parse body and properties
     (while body-and-properties
       (let ((item (car body-and-properties)))
         (cond
-         ;; Support both :mcp-description and :description
-         ((or (eq item :mcp-description) (eq item :description))
-          (setq description (cadr body-and-properties))
-          (setq body-and-properties (cddr body-and-properties)))
          ;; Old format schema
          ((eq item :mcp-schema)
           (setq schema (cadr body-and-properties))
@@ -111,8 +107,8 @@ New format: :parameters ((:name \"param\" :type \"string\" :required t :descript
          ,docstring
          ,@body)
        (put ',name :mcp-tool t)
-       ,(when description
-          `(put ',name :mcp-description ,description))
+       ;; Always use docstring as MCP description
+       (put ',name :mcp-description ,docstring)
        ,(when schema
           `(put ',name :mcp-schema ',schema))
        ',name)))

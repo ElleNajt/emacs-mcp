@@ -21,6 +21,20 @@
 
 ;;; Code:
 
+;;;; Configuration
+
+(defcustom claude-code-mcp-output-directory "/tmp/ClaudeWorkingFolder"
+  "Directory for MCP tool output files."
+  :type 'string
+  :group 'claude-code)
+
+;;;; Helper functions
+
+(defun claude-code-mcp-ensure-output-directory ()
+  "Ensure the MCP output directory exists."
+  (unless (file-directory-p claude-code-mcp-output-directory)
+    (make-directory claude-code-mcp-output-directory t)))
+
 ;;;; Tool-specific enum types
 
 ;; Define enum types used by the example tools
@@ -138,7 +152,6 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 
 (claude-code-defmcp mcp-hello-world (name)
                     "Greet someone with a friendly hello message."
-                    :description "Greet someone with a friendly hello message"
                     :parameters ((:name "name"
                                  :type "string"
                                  :required t
@@ -148,8 +161,7 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 ;;;; Emacs Variable Access
 
 (claude-code-defmcp mcp-set-safe-variable (variable-name value)
-                    "Set specific safe variables (whitelist only)."
-                    :description "Set whitelisted Emacs variables safely"
+                    "Set whitelisted Emacs variables safely."
                     :parameters ((:name "variable-name"
                                  :type "(choice \"debug-on-error\" \"debug-on-quit\" \"claude-code-mcp-enable-validation\")"
                                  :required t
@@ -224,8 +236,7 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                         (error (format "Error calling %s: %s" function-name (error-message-string err))))))
 
 (claude-code-defmcp mcp-get-variable-value (variable-names)
-                    "Get the current value of multiple Emacs variables (use mcp-call-allowed-function with 'symbol-value' for single variables)."
-                    :description "Get the current value of multiple Emacs variables"
+                    "Get the current value of multiple Emacs variables."
                     :parameters ((:name "variable-names"
                                  :type "(list string)"
                                  :required t
@@ -1332,56 +1343,6 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                               (write-region result nil output-file)
                               (format "Parentheses balance written to %s (final balance: %+d)" output-file balance))))
                       (format "File not found: %s" file-path)))
-
-
-
-;;;; Test tool for validation
-
-(claude-code-defmcp mcp-test-validation (name age files)
-                    "Test tool to demonstrate parameter validation."
-                    :description "Test parameter validation with different types"
-                    :parameters ((:name "name"
-                                 :type "string"
-                                 :required t
-                                 :description "Your name")
-                                (:name "age"
-                                 :type "integer"
-                                 :required t
-                                 :description "Your age in years")
-                                (:name "files"
-                                 :type "(list string)"
-                                 :required t
-                                 :description "List of file names"))
-                    (format "Hello %s (age %d)! You provided %d files: %s"
-                            name age (length files) (mapconcat #'identity files ", ")))
-
-;; Example of what you want - safe symbol handling
-(claude-code-defmcp mcp-test-symbols (function-names)
-                    "Test tool for handling lists of symbols safely."
-                    :description "Handle function names as symbols"
-                    :parameters ((:name "function-names"
-                                 :type "(list symbol)"
-                                 :required t
-                                 :description "List of function names as symbols"))
-                    (let ((results '()))
-                      (dolist (func-name function-names)
-                        (when (and (symbolp func-name) (fboundp func-name))
-                          (push (format "%s is a valid function" func-name) results)))
-                      (mapconcat #'identity (nreverse results) "; ")))
-
-;; Example for enum validation using cl-deftype
-(claude-code-defmcp mcp-test-enum (status priority)
-                    "Test tool for enum validation using cl-deftype."
-                    :description "Test enum parameter validation with predefined types"
-                    :parameters ((:name "status"
-                                 :type "mcp-todo-status"
-                                 :required t
-                                 :description "Task status")
-                                (:name "priority"
-                                 :type "mcp-priority"
-                                 :required t
-                                 :description "Task priority"))
-                    (format "Task is %s with %s priority" status priority))
 
 (provide 'mcp-tools)
 
