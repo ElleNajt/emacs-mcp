@@ -160,7 +160,7 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 
 ;;;; Emacs Variable Access
 
-(claude-code-defmcp mcp-set-safe-variable (variable-name value)
+(claude-code-defmcp mcp-set-allowed-variable (variable-name value)
                     "Set whitelisted Emacs variables safely."
                     :parameters ((:name "variable-name"
                                  :type "(choice \"debug-on-error\" \"debug-on-quit\" \"claude-code-mcp-enable-validation\")"
@@ -273,9 +273,9 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                     "Change the state of multiple agenda items in batch."
                     :description "Change the state of multiple agenda items in batch"
                     :parameters ((:name "batch-updates"
-                                 :type "(list string)"
+                                 :type "string"
                                  :required t
-                                 :description "JSON array of [line-number, new-state] pairs, e.g. [[\"1\", \"DONE\"], [\"3\", \"TODO\"]]")
+                                 :description "List of [line-number, new-state] pairs")
                                 (:name "agenda-type"
                                  :type "string"
                                  :required nil
@@ -289,8 +289,9 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                         (with-current-buffer "*Org Agenda*"
                           ;; Process each update
                           (dolist (update batch-updates)
-                            (let ((line-num (car update))
-                                  (new-state (cadr update)))
+                            (let* ((update-list (if (vectorp update) (append update nil) update))
+                                   (line-num (car update-list))
+                                   (new-state (cadr update-list)))
                               (condition-case err
                                   (progn
                                     (goto-char (point-min))
@@ -345,11 +346,11 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                       (if (search-forward heading-text nil t)
                           (progn
                             (org-back-to-heading t)
-                            (if remove-schedule
+                            (if (and remove-schedule (not (eq remove-schedule :false)))
                                 (org-schedule '(4))
                               (org-schedule nil schedule-date))
                             (save-buffer)
-                            (if remove-schedule
+                            (if (and remove-schedule (not (eq remove-schedule :false)))
                                 (format "Successfully removed schedule from heading '%s' in %s" heading-text org-file)
                               (format "Successfully scheduled heading '%s' for %s in %s" heading-text schedule-date org-file)))
                         (error "Heading '%s' not found in %s" heading-text org-file))))
@@ -385,13 +386,17 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                               (format "Successfully archived heading '%s' from %s to default archive" heading-text org-file)))
                         (error "Heading '%s' not found in %s" heading-text org-file))))
 
-(claude-code-defmcp mcp-org-capture (&optional template-key content immediate-finish)
+(claude-code-defmcp mcp-org-capture (&optional template-key title content immediate-finish)
                     "Add a new agenda item via org-capture mechanism."
                     :description "Add a new agenda item via org-capture mechanism"
                     :parameters ((:name "template-key"
                                  :type "string"
                                  :required nil
                                  :description "Capture template key (optional)")
+                                (:name "title"
+                                 :type "string"
+                                 :required nil
+                                 :description "Title/heading for the captured item (optional)")
                                 (:name "content"
                                  :type "string"
                                  :required nil
@@ -420,10 +425,35 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                           (let ((org-capture-entry (assoc template-key org-capture-templates)))
                             (if org-capture-entry
                                 (progn
-                                  (org-capture-string content template-key)
+                                  (if title
+                                      ;; Use org-capture interactively but fill in programmatically
+                                      (let ((org-capture-templates-modified
+                                             (mapcar (lambda (template)
+                                                       (if (string= (car template) template-key)
+                                                           (let ((template-copy (copy-tree template)))
+                                                             ;; Find and replace the template string (4th element for 'entry' type)
+                                                             (let ((template-str (nth 4 template-copy)))
+                                                               (when (stringp template-str)
+                                                                 (setf (nth 4 template-copy) 
+                                                                       (replace-regexp-in-string 
+                                                                        "\\* TODO %\\?\\(\n%i\\)?\\(%U\\)?" 
+                                                                        (concat "* TODO " title 
+                                                                               "\n%U"
+                                                                               (if content (concat "\n" content) ""))
+                                                                        template-str))))
+                                                             template-copy)
+                                                         template))
+                                                     org-capture-templates)))
+                                        (let ((org-capture-templates org-capture-templates-modified))
+                                          (org-capture-string "" template-key)))
+                                    ;; Fallback to old behavior if no title
+                                    (org-capture-string (or content "") template-key))
                                   (when immediate-finish
                                     (org-capture-finalize))
-                                  (format "Successfully captured item using template '%s': %s" template-key content))
+                                  (format "Successfully captured item using template '%s': %s%s" 
+                                          template-key 
+                                          (if title (concat "'" title "'") "")
+                                          (if content (concat " - " content) "")))
                               (error "Capture template '%s' not found" template-key)))
                         (error (format "Capture failed: %s" (error-message-string err)))))
                      (t
