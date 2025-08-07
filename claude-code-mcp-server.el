@@ -326,6 +326,19 @@ PROCESS is the server process receiving data, STRING is the received data."
 
   (message "Claude Code MCP server stopped"))
 
+;;;; Load example tools
+
+(defun claude-code-mcp-load-examples ()
+  "Load example MCP tools from examples/mcp-tools.el."
+  (interactive)
+  (let ((examples-file (expand-file-name "examples/mcp-tools.el" 
+                                         (file-name-directory (or load-file-name buffer-file-name)))))
+    (when (file-exists-p examples-file)
+      (load examples-file nil t)
+      (message "Loaded MCP example tools from %s" examples-file))
+    (unless (file-exists-p examples-file)
+      (message "Example tools file not found: %s" examples-file))))
+
 ;;;; Auto-start server via hook
 
 (add-hook 'claude-code-start-hook #'claude-code-mcp-start-server)
