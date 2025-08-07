@@ -288,6 +288,6 @@ Contributions welcome! Focus areas:
 
 - [Model Context Protocol](https://github.com/modelcontextprotocol/specification)
 - [Claude Code CLI](https://github.com/anthropics/claude-code)
-- [claude-code-ide.el](https://github.com/manzaltu/claude-code-ide.el) - Emacs IDE integration for Claude Code, inspiration for the cleaner schema format
+- [claude-code-ide.el](https://github.com/manzaltu/claude-code-ide.el) - Emacs IDE integration for Claude Code, which also has an MCP server -- inspiration for the schema format
 - [mcp-server-lib.el](https://github.com/laurynas-biveinis/mcp-server-lib.el) - Another Emacs Lisp MCP server implementation
 - [Emacs](https://www.gnu.org/software/emacs/)
