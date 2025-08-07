@@ -187,7 +187,7 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                                 (:name "args"
                                  :type "(or (list string) nil)"
                                  :required nil
-                                 :description "Function arguments (types validated per function)"))
+                                 :description "Function arguments - use [] for no args, \"value\" for single arg, [\"val1\", \"val2\"] for multiple args"))
                     (let* ((func-symbol (intern function-name))
                            (func-spec (assoc func-symbol mcp-allowed-functions))
                            (expected-arg-types (cdr func-spec)))
@@ -199,19 +199,25 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                       (unless (fboundp func-symbol)
                         (error "Function %s is not defined" function-name))
                       
-                      ;; Validate argument count
-                      (let ((expected-arg-count (length expected-arg-types))
-                            (actual-arg-count (length args)))
+                      ;; Validate argument count (filter out nil args for &rest params)
+                      (let* ((filtered-args (if (and (= (length args) 1) (null (car args)))
+                                                '() ; Remove single nil arg for &rest
+                                              args))
+                             (expected-arg-count (length expected-arg-types))
+                             (actual-arg-count (length filtered-args)))
                         (unless (= expected-arg-count actual-arg-count)
                           (error "Function %s expects %d argument(s), got %d" 
                                  function-name expected-arg-count actual-arg-count)))
                       
                       (condition-case err
-                          (let* ((converted-args 
+                          (let* ((filtered-args (if (and (= (length args) 1) (null (car args)))
+                                                    '() ; Remove single nil arg for &rest
+                                                  args))
+                                 (converted-args 
                                   (cl-mapcar (lambda (arg type-spec)
                                                (mcp-convert-arg-to-type arg type-spec))
-                                             args expected-arg-types))
-                                 (result (if args
+                                             filtered-args expected-arg-types))
+                                 (result (if filtered-args
                                              (apply func-symbol converted-args)
                                            (funcall func-symbol))))
                             (format "%s returned: %s" function-name result))
@@ -223,7 +229,7 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                     :parameters ((:name "variable-names"
                                  :type "(list string)"
                                  :required t
-                                 :description "List of variable names to query"))
+                                 :description "JSON array of variable names, e.g. [\"user-full-name\", \"system-name\"]"))
                     (let ((results '()))
                       (dolist (var-name variable-names)
                         (let ((var-symbol (intern var-name)))
@@ -258,7 +264,7 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                     :parameters ((:name "batch-updates"
                                  :type "(list string)"
                                  :required t
-                                 :description "List of [line-number, new-state] pairs")
+                                 :description "JSON array of [line-number, new-state] pairs, e.g. [[\"1\", \"DONE\"], [\"3\", \"TODO\"]]")
                                 (:name "agenda-type"
                                  :type "string"
                                  :required nil
@@ -430,7 +436,7 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                                 (:name "org-files"
                                  :type "(list string)"
                                  :required nil
-                                 :description "Specific org files to search (defaults to org-agenda-files)"))
+                                 :description "JSON array of org file paths, e.g. [\"todo.org\", \"work.org\"] (empty [] uses org-agenda-files)"))
                     (unless (file-directory-p "/tmp/ClaudeWorkingFolder")
                       (make-directory "/tmp/ClaudeWorkingFolder" t))
 
@@ -569,7 +575,7 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                     :parameters ((:name "file-paths"
                                  :type "(list string)"
                                  :required t
-                                 :description "List of file paths to open"))
+                                 :description "JSON array of file paths to open, e.g. [\"file1.el\", \"file2.org\"]"))
                     (let ((results '())
                           (blocked-files '()))
                       (dolist (file-path file-paths)
@@ -645,7 +651,7 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                     :parameters ((:name "symbol-names"
                                  :type "(list string)"
                                  :required t
-                                 :description "List of symbol names to describe")
+                                 :description "JSON array of symbol names, e.g. [\"describe-function\", \"symbol-value\"]")
                                 (:name "type"
                                  :type "string"
                                  :required nil

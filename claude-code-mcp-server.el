@@ -60,9 +60,14 @@ Returns an alist in the old format:
             (required (plist-get param :required)))
         (when name
           ;; Convert string name to symbol for the alist key
-          (push (cons (intern name)
-                     (list (intern type) desc))
-                result))))
+          ;; Parse type expression if it's a string containing Lisp code
+          (let ((parsed-type (if (and (stringp type)
+                                      (string-prefix-p "(" type))
+                                 (read type) ; Parse "(list string)" -> (list string)
+                               (intern type)))) ; Keep simple types as symbols
+            (push (cons (intern name)
+                       (list parsed-type desc))
+                  result)))))
     (nreverse result)))
 
 (defmacro claude-code-defmcp (name args docstring &rest body-and-properties)

@@ -157,11 +157,19 @@ Returns (success . error-message) pair."
    ((eq type-spec 'boolean) (or (eq value t) (eq value nil) (eq value :json-false) (eq value :false) (eq value :true)))
    ((eq type-spec 'symbol) (symbolp value))
    
-   ;; Check for cl-deftype definitions
-   ((and (symbolp type-spec) (get type-spec 'cl-deftype-handler))
-    (condition-case nil
-        (cl-typep value type-spec)
-      (error nil)))
+   ;; Check for cl-deftype definitions (handle both symbol and string forms)
+   ((or (and (symbolp type-spec) (get type-spec 'cl-deftype-handler))
+        (and (stringp type-spec) 
+             (get (intern type-spec) 'cl-deftype-handler)))
+    (let* ((type-sym (if (symbolp type-spec) type-spec (intern type-spec)))
+           (type-def (funcall (get type-sym 'cl-deftype-handler))))
+      ;; Handle choice types specially since they contain string values
+      (if (and (consp type-def) (eq (car type-def) 'choice))
+          (member value (cdr type-def))
+        ;; For other cl-deftype definitions, try cl-typep
+        (condition-case nil
+            (cl-typep value type-sym)
+          (error nil)))))
    
    ;; String fallbacks (backward compatibility)
    ((and (stringp type-spec) (string= type-spec "string")) (stringp value))
@@ -176,10 +184,22 @@ Returns (success . error-message) pair."
       (cond
        ;; (list element-type) - array where each element matches element-type
        ((eq type-op 'list)
-        (and (or (vectorp value) (listp value))
-             (let ((element-type (cadr type-spec))
-                   (elements (if (vectorp value) (append value nil) value)))
-               (cl-every (lambda (elem) (claude-code-mcp-type-matches-p elem element-type)) elements))))
+        (or 
+         ;; Accept actual lists or vectors
+         (and (or (vectorp value) (listp value))
+              (let ((element-type (cadr type-spec))
+                    (elements (if (vectorp value) (append value nil) value)))
+                (cl-every (lambda (elem) (claude-code-mcp-type-matches-p elem element-type)) elements)))
+         ;; Accept JSON string arrays like "[\"item1\", \"item2\"]"
+         (and (stringp value)
+              (string-prefix-p "[" value)
+              (string-suffix-p "]" value)
+              (condition-case nil
+                  (let* ((parsed-array (json-parse-string value))
+                         (element-type (cadr type-spec)))
+                    (cl-every (lambda (elem) (claude-code-mcp-type-matches-p elem element-type)) 
+                              (append parsed-array nil)))
+                (error nil)))))
 
        ;; (choice "val1" "val2" ...) - enum validation
        ((eq type-op 'choice)
@@ -205,10 +225,12 @@ Returns (success . error-message) pair."
    ((eq type-spec 'boolean) "boolean")
    ((eq type-spec 'symbol) "symbol")
    
-   ;; cl-deftype definitions
-   ((and (symbolp type-spec) (get type-spec 'cl-deftype-handler))
-    (let ((type-def (funcall (get type-spec 'cl-deftype-handler))))
-      (format "%s (%s)" type-spec (claude-code-mcp-simple-type-description type-def))))
+   ;; cl-deftype definitions (handle both symbol and string forms)
+   ((or (and (symbolp type-spec) (get type-spec 'cl-deftype-handler))
+        (and (stringp type-spec) (get (intern type-spec) 'cl-deftype-handler)))
+    (let* ((type-sym (if (symbolp type-spec) type-spec (intern type-spec)))
+           (type-def (funcall (get type-sym 'cl-deftype-handler))))
+      (format "%s (%s)" type-sym (claude-code-mcp-simple-type-description type-def))))
    
    ;; String fallbacks
    ((stringp type-spec) type-spec)
@@ -218,11 +240,21 @@ Returns (success . error-message) pair."
     (let ((type-op (car type-spec)))
       (cond
        ((eq type-op 'list)
-        (format "array of %s" (claude-code-mcp-simple-type-description (cadr type-spec))))
+        (format "array of %s - use JSON format: [\"%s1\", \"%s2\"]" 
+                (claude-code-mcp-simple-type-description (cadr type-spec))
+                (if (eq (cadr type-spec) 'string) "item" "val")
+                (if (eq (cadr type-spec) 'string) "item" "val")))
        ((eq type-op 'choice)
         (format "one of: %s" (mapconcat (lambda (x) (format "\"%s\"" x)) (cdr type-spec) ", ")))
        ((eq type-op 'or)
-        (format "(%s)" (mapconcat #'claude-code-mcp-simple-type-description (cdr type-spec) " or ")))
+        (let ((types (cdr type-spec)))
+          (if (and (= (length types) 2) (memq 'nil types))
+              ;; Handle (or type nil) - optional parameter
+              (let ((non-nil-type (car (cl-remove 'nil types))))
+                (format "%s (optional) - use [] if not needed" 
+                        (claude-code-mcp-simple-type-description non-nil-type)))
+            ;; Regular union type
+            (format "(%s)" (mapconcat #'claude-code-mcp-simple-type-description types " or ")))))
        (t (format "%s" type-spec)))))
    
    (t (format "%s" type-spec))))
