@@ -55,7 +55,12 @@ Supports: string, integer, number, boolean, (list type), (choice vals...), (or t
             (push param-name required)
             (let ((json-type (claude-code-mcp-type-to-json-schema param-type)))
               (when param-desc
-                (setq json-type (append json-type `((description . ,param-desc)))))
+                ;; Combine manual description with automatic type-based format hint
+                (let* ((type-hint (claude-code-mcp-simple-type-description param-type))
+                       (combined-desc (if (and (consp param-type) (memq (car param-type) '(list or)))
+                                          (format "%s - %s" param-desc type-hint)
+                                        param-desc)))
+                  (setq json-type (append json-type `((description . ,combined-desc))))))
               (puthash param-name json-type properties)))))
       
       `((type . "object")
