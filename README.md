@@ -12,28 +12,44 @@ This project provides:
 - **Type System**: Emacs Lisp-style type specifications with JSON Schema generation
 - **Security**: Input validation and access restrictions to protect sensitive data
 
+## Setup Instructions
+
+### Prerequisites
+
+- Emacs 27+ (tested with Emacs 29)
+- `nc` (netcat) command available in your PATH
+- Claude Code CLI installed
+
+### Installation
+
+1. **Clone this repository**:
+   ```bash
+   git clone https://github.com/yourusername/emacsmcp.el.git
+   cd emacsmcp.el
+   ```
+
+2. **Install in Claude Code CLI**:
+   ```bash
+   ./examples/install-example.sh
+   ```
+
+3. **Add to your Emacs init file**:
+   Copy the contents of `examples/init-example.el` to your Emacs configuration, updating the paths to match where you cloned the repository.
+
+4. **Restart Emacs** and the MCP server will start automatically.
+
+5. **Test the connection**:
+   ```bash
+   claude
+   # Ask Claude to interact with Emacs
+   > Can you list the buffers in my Emacs?
+   ```
+
 ## Quick Start
 
-1. **Load the MCP server**:
-   ```elisp
-   (load-file "claude-code-mcp-server.el")
-   ```
-
-2. **Load example tools**:
-   ```elisp
-   (load-file "examples/mcp-tools.el")
-   ```
-
-3. **Start the server**:
-   ```elisp
-   (claude-code-start-mcp-server)
-   ```
-
-4. **Install in Claude Code CLI**:
-   ```bash
-   # From the project directory
-   claude mcp add emacs ./mcp-proxy.sh
-   ```
+1. Install: `./examples/install-example.sh`
+2. Add `examples/init-example.el` contents to your config (update paths)
+3. Restart Emacs
 
 ## Architecture
 

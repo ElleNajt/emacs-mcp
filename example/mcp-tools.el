@@ -75,8 +75,8 @@
 
 (cl-deftype mcp-allowed-function () 
   '(choice "profiler-start" "profiler-stop" "profiler-report" "profiler-reset" "profiler-running-p" 
-           "garbage-collect" "memory-report" "buffer-list" "process-list" 
-           "symbol-value" "emacs-version" "current-time" "user-full-name" "system-name"))
+    "garbage-collect" "memory-report" "buffer-list" "process-list"
+    "symbol-value" "emacs-version" "current-time" "user-full-name" "system-name"))
 
 ;;;; Type conversion helper function
 
@@ -153,9 +153,9 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 (claude-code-defmcp mcp-hello-world (name)
                     "Greet someone with a friendly hello message."
                     :parameters ((:name "name"
-                                 :type "string"
-                                 :required t
-                                 :description "Name of person to greet"))
+                                  :type "string"
+                                  :required t
+                                  :description "Name of person to greet"))
                     (format "Hello, %s! 👋" name))
 
 ;;;; Emacs Variable Access
@@ -163,13 +163,13 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 (claude-code-defmcp mcp-set-allowed-variable (variable-name value)
                     "Set whitelisted Emacs variables safely."
                     :parameters ((:name "variable-name"
-                                 :type "(choice \"debug-on-error\" \"debug-on-quit\" \"claude-code-mcp-enable-validation\")"
-                                 :required t
-                                 :description "Variable to set")
-                                (:name "value"
-                                 :type "boolean"
-                                 :required t
-                                 :description "New value"))
+                                  :type "(choice \"debug-on-error\" \"debug-on-quit\" \"claude-code-mcp-enable-validation\")"
+                                  :required t
+                                  :description "Variable to set")
+                                 (:name "value"
+                                  :type "boolean"
+                                  :required t
+                                  :description "New value"))
                     (let ((var-symbol (intern variable-name)))
                       (unless (boundp var-symbol)
                         (error "Variable %s is not defined" variable-name))
@@ -193,13 +193,13 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                     "Call allowed Emacs functions with type-validated arguments."
                     :description "Call approved Emacs functions with type validation"
                     :parameters ((:name "function-name"
-                                 :type "mcp-allowed-function"
-                                 :required t
-                                 :description "Function name (must be in allowed list)")
-                                (:name "args"
-                                 :type "(or (list string) nil)"
-                                 :required nil
-                                 :description "Function arguments - use [] for no args, \"value\" for single arg, [\"val1\", \"val2\"] for multiple args"))
+                                  :type "mcp-allowed-function"
+                                  :required t
+                                  :description "Function name (must be in allowed list)")
+                                 (:name "args"
+                                  :type "(or (list string) nil)"
+                                  :required nil
+                                  :description "Function arguments - use [] for no args, \"value\" for single arg, [\"val1\", \"val2\"] for multiple args"))
                     (let* ((func-symbol (intern function-name))
                            (func-spec (assoc func-symbol mcp-allowed-functions))
                            (expected-arg-types (cdr func-spec)))
@@ -238,9 +238,9 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
 (claude-code-defmcp mcp-get-variable-value (variable-names)
                     "Get the current value of multiple Emacs variables."
                     :parameters ((:name "variable-names"
-                                 :type "(list string)"
-                                 :required t
-                                 :description "JSON array of variable names, e.g. [\"user-full-name\", \"system-name\"]"))
+                                  :type "(list string)"
+                                  :required t
+                                  :description "JSON array of variable names, e.g. [\"user-full-name\", \"system-name\"]"))
                     (let ((results '()))
                       (dolist (var-name variable-names)
                         (let ((var-symbol (intern var-name)))
@@ -255,9 +255,9 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                     "Get the org-agenda view and write it to /tmp/ClaudeWorkingFolder/agenda_<type>.txt."
                     :description "Get org-agenda view and save to file for analysis"
                     :parameters ((:name "agenda-type"
-                                 :type "string"
-                                 :required nil
-                                 :description "Agenda type (default: 'a')"))
+                                  :type "string"
+                                  :required nil
+                                  :description "Agenda type (default: 'a')"))
                     (let ((type (or agenda-type "a")))
                       (unless (file-directory-p "/tmp/ClaudeWorkingFolder")
                         (make-directory "/tmp/ClaudeWorkingFolder" t))
@@ -273,13 +273,13 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                     "Change the state of multiple agenda items in batch."
                     :description "Change the state of multiple agenda items in batch"
                     :parameters ((:name "batch-updates"
-                                 :type "string"
-                                 :required t
-                                 :description "List of [line-number, new-state] pairs")
-                                (:name "agenda-type"
-                                 :type "string"
-                                 :required nil
-                                 :description "Agenda type to work with (default 'a')"))
+                                  :type "string"
+                                  :required t
+                                  :description "List of [line-number, new-state] pairs")
+                                 (:name "agenda-type"
+                                  :type "string"
+                                  :required nil
+                                  :description "Agenda type to work with (default 'a')"))
                     (unless agenda-type (setq agenda-type "a"))
                     (save-window-excursion
                       (let ((org-agenda-window-setup 'current-window)
@@ -325,21 +325,21 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                     "Schedule a TODO item by adding SCHEDULED property."
                     :description "Schedule a TODO item by adding SCHEDULED property"
                     :parameters ((:name "org-file"
-                                 :type "string"
-                                 :required t
-                                 :description "Path to the org file containing the heading")
-                                (:name "heading-text"
-                                 :type "string"
-                                 :required t
-                                 :description "Text of the heading to schedule")
-                                (:name "schedule-date"
-                                 :type "string"
-                                 :required t
-                                 :description "Date/time to schedule (e.g., '2025-01-15', 'today', '+1d')")
-                                (:name "remove-schedule"
-                                 :type "boolean"
-                                 :required nil
-                                 :description "Remove existing schedule instead of setting one"))
+                                  :type "string"
+                                  :required t
+                                  :description "Path to the org file containing the heading")
+                                 (:name "heading-text"
+                                  :type "string"
+                                  :required t
+                                  :description "Text of the heading to schedule")
+                                 (:name "schedule-date"
+                                  :type "string"
+                                  :required t
+                                  :description "Date/time to schedule (e.g., '2025-01-15', 'today', '+1d')")
+                                 (:name "remove-schedule"
+                                  :type "boolean"
+                                  :required nil
+                                  :description "Remove existing schedule instead of setting one"))
                     (save-window-excursion
                       (find-file org-file)
                       (goto-char (point-min))
@@ -359,17 +359,17 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                     "Archive a TODO item by moving it to the archive file."
                     :description "Archive a TODO item by moving it to the archive file"
                     :parameters ((:name "org-file"
-                                 :type "string"
-                                 :required t
-                                 :description "Path to the org file containing the heading")
-                                (:name "heading-text"
-                                 :type "string"
-                                 :required t
-                                 :description "Text of the heading to archive")
-                                (:name "archive-location"
-                                 :type "string"
-                                 :required nil
-                                 :description "Archive location (optional)"))
+                                  :type "string"
+                                  :required t
+                                  :description "Path to the org file containing the heading")
+                                 (:name "heading-text"
+                                  :type "string"
+                                  :required t
+                                  :description "Text of the heading to archive")
+                                 (:name "archive-location"
+                                  :type "string"
+                                  :required nil
+                                  :description "Archive location (optional)"))
                     (save-window-excursion
                       (find-file org-file)
                       (goto-char (point-min))
@@ -390,21 +390,21 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                     "Add a new agenda item via org-capture mechanism."
                     :description "Add a new agenda item via org-capture mechanism"
                     :parameters ((:name "template-key"
-                                 :type "string"
-                                 :required nil
-                                 :description "Capture template key (optional)")
-                                (:name "title"
-                                 :type "string"
-                                 :required nil
-                                 :description "Title/heading for the captured item (optional)")
-                                (:name "content"
-                                 :type "string"
-                                 :required nil
-                                 :description "Content to capture (optional)")
-                                (:name "immediate-finish"
-                                 :type "boolean"
-                                 :required nil
-                                 :description "Whether to immediately finish capture"))
+                                  :type "string"
+                                  :required nil
+                                  :description "Capture template key (optional)")
+                                 (:name "title"
+                                  :type "string"
+                                  :required nil
+                                  :description "Title/heading for the captured item (optional)")
+                                 (:name "content"
+                                  :type "string"
+                                  :required nil
+                                  :description "Content to capture (optional)")
+                                 (:name "immediate-finish"
+                                  :type "boolean"
+                                  :required nil
+                                  :description "Whether to immediately finish capture"))
                     (unless immediate-finish (setq immediate-finish t))
                     (cond
                      ((not template-key)
@@ -438,8 +438,8 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                                                                        (replace-regexp-in-string 
                                                                         "\\* TODO %\\?\\(\n%i\\)?\\(%U\\)?" 
                                                                         (concat "* TODO " title 
-                                                                               "\n%U"
-                                                                               (if content (concat "\n" content) ""))
+                                                                                "\n%U"
+                                                                                (if content (concat "\n" content) ""))
                                                                         template-str))))
                                                              template-copy)
                                                          template))
@@ -471,13 +471,13 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                     "Get all TODO items from org files, including unscheduled ones."
                     :description "Get all TODO items from org files, including unscheduled ones"
                     :parameters ((:name "include-done"
-                                 :type "boolean"
-                                 :required nil
-                                 :description "Include DONE items in results")
-                                (:name "org-files"
-                                 :type "(list string)"
-                                 :required nil
-                                 :description "JSON array of org file paths, e.g. [\"todo.org\", \"work.org\"] (empty [] uses org-agenda-files)"))
+                                  :type "boolean"
+                                  :required nil
+                                  :description "Include DONE items in results")
+                                 (:name "org-files"
+                                  :type "(list string)"
+                                  :required nil
+                                  :description "JSON array of org file paths, e.g. [\"todo.org\", \"work.org\"] (empty [] uses org-agenda-files)"))
                     (unless (file-directory-p "/tmp/ClaudeWorkingFolder")
                       (make-directory "/tmp/ClaudeWorkingFolder" t))
 
@@ -514,21 +514,21 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                     "Go to the source location of an agenda item and return file path and content."
                     :description "Go to the source location of an agenda item and return file path and content"
                     :parameters ((:name "target-type"
-                                 :type "string"
-                                 :required t
-                                 :description "Either 'agenda_line' or 'agenda_text'")
-                                (:name "target"
-                                 :type "string"
-                                 :required t
-                                 :description "Either agenda line number (1-based) or agenda item text")
-                                (:name "agenda-type"
-                                 :type "string"
-                                 :required nil
-                                 :description "Agenda type to work with (default 'a')")
-                                (:name "context-lines"
-                                 :type "number"
-                                 :required nil
-                                 :description "Number of lines before/after to show for context"))
+                                  :type "string"
+                                  :required t
+                                  :description "Either 'agenda_line' or 'agenda_text'")
+                                 (:name "target"
+                                  :type "string"
+                                  :required t
+                                  :description "Either agenda line number (1-based) or agenda item text")
+                                 (:name "agenda-type"
+                                  :type "string"
+                                  :required nil
+                                  :description "Agenda type to work with (default 'a')")
+                                 (:name "context-lines"
+                                  :type "number"
+                                  :required nil
+                                  :description "Number of lines before/after to show for context"))
                     (unless agenda-type (setq agenda-type "a"))
                     (unless context-lines (setq context-lines 5))
                     (unless (file-directory-p "/tmp/ClaudeWorkingFolder")
@@ -614,9 +614,9 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                     "Open files in Emacs and return buffer names."
                     :description "Open one or more files in Emacs in the background"
                     :parameters ((:name "file-paths"
-                                 :type "(list string)"
-                                 :required t
-                                 :description "JSON array of file paths to open, e.g. [\"file1.el\", \"file2.org\"]"))
+                                  :type "(list string)"
+                                  :required t
+                                  :description "JSON array of file paths to open, e.g. [\"file1.el\", \"file2.org\"]"))
                     (let ((results '())
                           (blocked-files '()))
                       (dolist (file-path file-paths)
@@ -643,17 +643,17 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                     "Search for Emacs symbols, commands, or variables matching a pattern."
                     :description "Search for Emacs symbols using apropos functions"
                     :parameters ((:name "pattern"
-                                 :type "string"
-                                 :required t
-                                 :description "Pattern to search for")
-                                (:name "type"
-                                 :type "mcp-search-type"
-                                 :required nil
-                                 :description "Type: all, commands, variables, functions")
-                                (:name "predicate"
-                                 :type "(or string nil)"
-                                 :required nil
-                                 :description "Optional predicate for filtering"))
+                                  :type "string"
+                                  :required t
+                                  :description "Pattern to search for")
+                                 (:name "type"
+                                  :type "mcp-search-type"
+                                  :required nil
+                                  :description "Type: all, commands, variables, functions")
+                                 (:name "predicate"
+                                  :type "(or string nil)"
+                                  :required nil
+                                  :description "Optional predicate for filtering"))
                     (let ((search-type (or type "all"))
                           (result ""))
                       (cond
@@ -690,13 +690,13 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                     "Get comprehensive documentation for Emacs symbols."
                     :description "Get detailed documentation for one or more Emacs symbols"
                     :parameters ((:name "symbol-names"
-                                 :type "(list string)"
-                                 :required t
-                                 :description "JSON array of symbol names, e.g. [\"describe-function\", \"symbol-value\"]")
-                                (:name "type"
-                                 :type "string"
-                                 :required nil
-                                 :description "Type: function, variable, or symbol"))
+                                  :type "(list string)"
+                                  :required t
+                                  :description "JSON array of symbol names, e.g. [\"describe-function\", \"symbol-value\"]")
+                                 (:name "type"
+                                  :type "string"
+                                  :required nil
+                                  :description "Type: function, variable, or symbol"))
                     (let ((desc-type (or type "symbol"))
                           (results '()))
                       (dolist (symbol-name symbol-names)
@@ -744,13 +744,13 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                     "Dump keymaps for buffer contexts to files."
                     :description "Analyze keymaps for one or more buffer contexts"
                     :parameters ((:name "buffer-names"
-                                 :type "(list string)"
-                                 :required t
-                                 :description "List of buffer names to analyze")
-                                (:name "include-global"
-                                 :type "boolean"
-                                 :required nil
-                                 :description "Include global keymap analysis"))
+                                  :type "(list string)"
+                                  :required t
+                                  :description "List of buffer names to analyze")
+                                 (:name "include-global"
+                                  :type "boolean"
+                                  :required nil
+                                  :description "Include global keymap analysis"))
                     (unless (file-directory-p "/tmp/ClaudeWorkingFolder")
                       (make-directory "/tmp/ClaudeWorkingFolder" t))
 
@@ -808,17 +808,17 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                     "Get comprehensive buffer information and write to files."
                     :description "Get buffer info including content, mode details, and variables"
                     :parameters ((:name "buffer-names"
-                                 :type "(list string)"
-                                 :required t
-                                 :description "List of buffer names to analyze")
-                                (:name "include-content"
-                                 :type "boolean"
-                                 :required nil
-                                 :description "Include buffer content")
-                                (:name "include-variables"
-                                 :type "boolean"
-                                 :required nil
-                                 :description "Include key variables"))
+                                  :type "(list string)"
+                                  :required t
+                                  :description "List of buffer names to analyze")
+                                 (:name "include-content"
+                                  :type "boolean"
+                                  :required nil
+                                  :description "Include buffer content")
+                                 (:name "include-variables"
+                                  :type "boolean"
+                                  :required nil
+                                  :description "Include key variables"))
                     (unless (file-directory-p "/tmp/ClaudeWorkingFolder")
                       (make-directory "/tmp/ClaudeWorkingFolder" t))
 
@@ -875,9 +875,9 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                     "Run check-parens on Lisp files to validate parentheses balance."
                     :description "Validate parentheses balance in Lisp code files"
                     :parameters ((:name "file-paths"
-                                 :type "(list string)"
-                                 :required t
-                                 :description "List of file paths to check"))
+                                  :type "(list string)"
+                                  :required t
+                                  :description "List of file paths to check"))
                     (let ((results '()))
                       (dolist (file-path file-paths)
                         (let* ((existing-buffer (find-buffer-visiting file-path))
@@ -906,9 +906,9 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                     "Get buffers in workspaces and write to file."
                     :description "Get list of buffers in each workspace"
                     :parameters ((:name "workspace-name"
-                                 :type "string"
-                                 :required nil
-                                 :description "Specific workspace name (optional)"))
+                                  :type "string"
+                                  :required nil
+                                  :description "Specific workspace name (optional)"))
                     (unless (file-directory-p "/tmp/ClaudeWorkingFolder")
                       (make-directory "/tmp/ClaudeWorkingFolder" t))
 
@@ -960,13 +960,13 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                     "Rename a workspace by its slot number or current name."
                     :description "Rename a workspace by its slot number or current name"
                     :parameters ((:name "workspace-identifier"
-                                 :type "string"
-                                 :required t
-                                 :description "Current workspace name or slot number to rename")
-                                (:name "new-name"
-                                 :type "string"
-                                 :required t
-                                 :description "New name for the workspace"))
+                                  :type "string"
+                                  :required t
+                                  :description "Current workspace name or slot number to rename")
+                                 (:name "new-name"
+                                  :type "string"
+                                  :required t
+                                  :description "New name for the workspace"))
                     (if (and (fboundp '+workspace/rename) (fboundp '+workspace-get))
                         (condition-case err
                             (let* ((current-workspace (+workspace-current))
@@ -1006,9 +1006,9 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                     "Create a new workspace with a given name."
                     :description "Create a new workspace with a given name"
                     :parameters ((:name "workspace-name"
-                                 :type "string"
-                                 :required t
-                                 :description "Name for the new workspace"))
+                                  :type "string"
+                                  :required t
+                                  :description "Name for the new workspace"))
                     (if (fboundp '+workspace-new)
                         (condition-case err
                             (progn
@@ -1021,9 +1021,9 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                     "Delete a workspace by name or identifier."
                     :description "Delete a workspace by name or identifier"
                     :parameters ((:name "workspace-identifier"
-                                 :type "string"
-                                 :required t
-                                 :description "Workspace name or identifier to delete"))
+                                  :type "string"
+                                  :required t
+                                  :description "Workspace name or identifier to delete"))
                     (if (and (fboundp 'persp-kill) (fboundp '+workspace-list-names))
                         (condition-case err
                             (let* ((workspace-names (+workspace-list-names))
@@ -1068,13 +1068,13 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                     "Move all protected buffers from one workspace to another."
                     :description "Move all protected buffers (Claude Code sessions, terminals, etc.) from one workspace to another"
                     :parameters ((:name "source-workspace"
-                                 :type "string"
-                                 :required t
-                                 :description "Workspace containing protected buffers to move")
-                                (:name "target-workspace"
-                                 :type "string"
-                                 :required t
-                                 :description "Workspace to move protected buffers to"))
+                                  :type "string"
+                                  :required t
+                                  :description "Workspace containing protected buffers to move")
+                                 (:name "target-workspace"
+                                  :type "string"
+                                  :required t
+                                  :description "Workspace to move protected buffers to"))
                     (if (and (fboundp '+workspace-list-names) (fboundp '+workspace-buffer-list))
                         (condition-case err
                             (let* ((workspace-names (+workspace-list-names)))
@@ -1130,13 +1130,13 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                     "Set up window layout for a workspace without switching away from current workspace."
                     :description "Set up window layout for a workspace without switching away from current workspace"
                     :parameters ((:name "workspace-name"
-                                 :type "string"
-                                 :required t
-                                 :description "Name of the workspace to configure")
-                                (:name "layout"
-                                 :type "object"
-                                 :required t
-                                 :description "Layout configuration with primary_buffer, secondary_buffer, split_direction"))
+                                  :type "string"
+                                  :required t
+                                  :description "Name of the workspace to configure")
+                                 (:name "layout"
+                                  :type "object"
+                                  :required t
+                                  :description "Layout configuration with primary_buffer, secondary_buffer, split_direction"))
                     (condition-case err
                         (let ((current-workspace (+workspace-current-name))
                               (target-workspace workspace-name)
@@ -1182,9 +1182,9 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                     "Get buffer contents and write each to separate files."
                     :description "View buffer contents by writing to individual files"
                     :parameters ((:name "buffer-names"
-                                 :type "(list string)"
-                                 :required t
-                                 :description "List of buffer names to view"))
+                                  :type "(list string)"
+                                  :required t
+                                  :description "List of buffer names to view"))
                     (unless (file-directory-p "/tmp/ClaudeWorkingFolder")
                       (make-directory "/tmp/ClaudeWorkingFolder" t))
 
@@ -1222,17 +1222,17 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                     "Count opening and closing parentheses between two lines in a file."
                     :description "Count opening and closing parentheses between two lines in a file"
                     :parameters ((:name "file-path"
-                                 :type "string"
-                                 :required t
-                                 :description "Path to the file to analyze")
-                                (:name "start-line"
-                                 :type "number"
-                                 :required t
-                                 :description "Starting line number (1-based)")
-                                (:name "end-line"
-                                 :type "number"
-                                 :required t
-                                 :description "Ending line number (1-based)"))
+                                  :type "string"
+                                  :required t
+                                  :description "Path to the file to analyze")
+                                 (:name "start-line"
+                                  :type "number"
+                                  :required t
+                                  :description "Starting line number (1-based)")
+                                 (:name "end-line"
+                                  :type "number"
+                                  :required t
+                                  :description "Ending line number (1-based)"))
                     (if (file-exists-p file-path)
                         (with-temp-buffer
                           (insert-file-contents file-path)
@@ -1274,17 +1274,17 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                     "Check parentheses balance in a specific line range by copying to scratch buffer."
                     :description "Check parentheses balance in a specific line range by copying to scratch buffer"
                     :parameters ((:name "file-path"
-                                 :type "string"
-                                 :required t
-                                 :description "Path to the file to analyze")
-                                (:name "start-line"
-                                 :type "number"
-                                 :required t
-                                 :description "Starting line number (1-based)")
-                                (:name "end-line"
-                                 :type "number"
-                                 :required t
-                                 :description "Ending line number (1-based)"))
+                                  :type "string"
+                                  :required t
+                                  :description "Path to the file to analyze")
+                                 (:name "start-line"
+                                  :type "number"
+                                  :required t
+                                  :description "Starting line number (1-based)")
+                                 (:name "end-line"
+                                  :type "number"
+                                  :required t
+                                  :description "Ending line number (1-based)"))
                     (if (file-exists-p file-path)
                         (with-temp-buffer
                           (insert-file-contents file-path)
@@ -1315,17 +1315,17 @@ pattern from `claude-code-mcp-blocked-buffer-patterns'."
                     "Show running parentheses balance count at the beginning of each line."
                     :description "Show running parentheses balance count at the beginning of each line"
                     :parameters ((:name "file-path"
-                                 :type "string"
-                                 :required t
-                                 :description "Path to the file to analyze")
-                                (:name "start-line"
-                                 :type "number"
-                                 :required t
-                                 :description "Starting line number (1-based)")
-                                (:name "end-line"
-                                 :type "number"
-                                 :required t
-                                 :description "Ending line number (1-based)"))
+                                  :type "string"
+                                  :required t
+                                  :description "Path to the file to analyze")
+                                 (:name "start-line"
+                                  :type "number"
+                                  :required t
+                                  :description "Starting line number (1-based)")
+                                 (:name "end-line"
+                                  :type "number"
+                                  :required t
+                                  :description "Ending line number (1-based)"))
                     (if (file-exists-p file-path)
                         (with-temp-buffer
                           (insert-file-contents file-path)
