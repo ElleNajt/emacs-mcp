@@ -6,14 +6,14 @@
 
 ;;; Code:
 
-;; Load the MCP server (update path as needed)
-(add-to-list 'load-path "/path/to/emacsmcp.el")
-(require 'claude-code-mcp-server)
-
-;; Load the MCP tools
-(load-file "/path/to/emacsmcp.el/examples/mcp-tools.el")
+;; Load the MCP server (calculate path dynamically)
+(let ((emacsmcp-dir (file-name-directory (or load-file-name buffer-file-name))))
+  (add-to-list 'load-path (expand-file-name ".." emacsmcp-dir))
+  (require 'claude-code-mcp-server)
+  ;; Load the MCP tools
+  (load-file (expand-file-name "mcp-tools.el" emacsmcp-dir)))
 
 ;; Auto-start the server when Emacs starts
-(claude-code-start-mcp-server)
+(claude-code-mcp-start-server)
 
 ;;; init.el ends here

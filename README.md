@@ -4,102 +4,92 @@ A Model Context Protocol (MCP) server implementation in Emacs Lisp that enables 
 
 ## Overview
 
-This project provides:
-- **MCP Tools Protocol**: Complete implementation of MCP tools for Emacs interaction
-- **MCP Server**: A TCP-based server (`claude-code-mcp-server.el`) that implements the MCP protocol
-- **Tool Framework**: Macro system for defining MCP tools with type validation
-- **Rich Tool Set**: 25+ tools for comprehensive Emacs interaction
-- **Type System**: Emacs Lisp-style type specifications with JSON Schema generation
-- **Security**: Input validation and access restrictions to protect sensitive data
+This project provides two main components:
 
-## Setup Instructions
+1. **MCP Server Framework** (`claude-code-mcp-server.el`, `claude-code-mcp-types.el`) - A complete MCP server implementation with type validation, security features, and macro system for defining tools
+2. **Example Tool Collection** (`examples/mcp-tools.el`) - 25+ ready-to-use tools for buffer management, Org-mode operations, workspace control, and Elisp debugging
 
-### Prerequisites
+The framework enables you to create custom MCP tools for your specific Emacs workflow, while the example tools provide immediate functionality.
 
-- Emacs 27+ (tested with Emacs 29)
-- `nc` (netcat) command available in your PATH
-- Claude Code CLI installed
+## Installation
 
-### Installation
+**Prerequisites**: Emacs 27+, `nc` (netcat), Claude Code CLI
+
+### Option 1: Using straight.el (Recommended)
+(WIP - testing this)
+
+1. **Install with straight.el**:
+   
+   Add to your `packages.el` (for Doom) or equivalent:
+   ```elisp
+   (package! emacs-mcp
+     :recipe (:host github :repo "ElleNajt/emacs-mcp"
+              :post-build (lambda ()
+                           (let ((proxy-path (expand-file-name "mcp-proxy.sh" 
+                                                             (straight--repos-dir "emacs-mcp"))))
+                             (shell-command (format "claude mcp add -s user emacs %s" proxy-path))))))
+   ```
+   
+   Add to your `config.el` or init file:
+   ```elisp
+   (use-package! emacs-mcp
+     :config
+     ;; Load the MCP server framework
+     (require 'claude-code-mcp-server)
+     (require 'claude-code-mcp-types)
+     
+     ;; Load example tools
+     (require 'mcp-tools)
+     
+     ;; Start the MCP server
+     (claude-code-mcp-start-server))
+   ```
+
+### Option 2: Manual Installation (For Testing)
 
 1. **Clone this repository**:
    ```bash
-   git clone https://github.com/yourusername/emacsmcp.el.git
-   cd emacsmcp.el
+   git clone https://github.com/yourusername/emacs-mcp.git
+   cd emacs-mcp
    ```
 
-2. **Install in Claude Code CLI**:
+2. **Try the example configuration**:
+   The `examples/init-example.el` file provides a complete configuration for testing without installing. It expects to be run from the repository directory:
+   ```elisp
+   ;; Load from current directory (for testing only)
+   (load-file "claude-code-mcp-server.el")
+   (load-file "claude-code-mcp-types.el") 
+   (load-file "example/mcp-tools.el")
+   (claude-code-mcp-start-server)
+   ```
+
+3. **Install in Claude Code CLI**:
    ```bash
-   ./examples/install-example.sh
+   /path/to/emacs-mcp/example/install-example.sh
    ```
 
-3. **Add to your Emacs init file**:
-   Copy the contents of `examples/init-example.el` to your Emacs configuration, updating the paths to match where you cloned the repository.
-
-4. **Restart Emacs** and the MCP server will start automatically.
-
-5. **Test the connection**:
+4. **Test the connection**:
    ```bash
    claude
    # Ask Claude to interact with Emacs
    > Can you list the buffers in my Emacs?
    ```
 
-## Quick Start
 
-1. Install: `./examples/install-example.sh`
-2. Add `examples/init-example.el` contents to your config (update paths)
-3. Restart Emacs
+## Framework Components
 
-## Architecture
+### Core Framework Files
+- **`claude-code-mcp-server.el`**: TCP server implementing MCP protocol (port 8765)
+- **`claude-code-mcp-types.el`**: Type system with JSON Schema generation and parameter validation
+- **`mcp-proxy.sh`**: Proxy script that bridges stdio to TCP using netcat
 
-### Core Components
+### Example Tools
+- **`examples/mcp-tools.el`**: Collection of 25+ MCP tools demonstrating the framework
+- **`examples/init-example.el`**: Sample Emacs configuration
+- **`examples/install-example.sh`**: Installation script for Claude Code CLI
 
-- **`claude-code-mcp-server.el`**: Main MCP server implementation
-  - TCP server on port 8765 (configurable)
-  - JSON-RPC message handling
-  - Tool discovery and execution framework
-  - Security validation
 
-- **`claude-code-mcp-types.el`**: Type system and validation
-  - JSON Schema generation from Emacs Lisp type specs
-  - Parameter validation with configurable enable/disable
-  - Support for cl-deftype enums and complex types
-  - Clear error messages for type mismatches
-
-- **`mcp-proxy.sh`**: Ultra-thin proxy that bridges stdio to TCP
-  - Uses `nc` to connect Claude Code CLI to Emacs MCP server
-  - Enables standard MCP client integration
-
-- **`examples/mcp-tools.el`**: Rich collection of MCP tools
-  - 25+ tools for comprehensive Emacs interaction
-  - Org-mode integration, workspace management, debugging utilities
-  - Security patterns and blocked buffer protection
-
-### Tool Definition Framework
-
-Use the `claude-code-defmcp` macro to create new MCP tools with rich type specifications:
-
-```elisp
-(claude-code-defmcp my-tool (name files status)
-  "Tool documentation."
-  :mcp-description "Brief description for MCP clients"
-  :mcp-schema '((name . (string "User name"))
-                (files . ((list string) "List of file paths"))
-                (status . ((choice "active" "inactive") "Current status")))
-  ;; Implementation with validated parameters
-  (format "Processing %s with %d files, status: %s" 
-          name (length files) status))
-```
-
-#### Type System Features
-- **Basic types**: `string`, `integer`, `number`, `boolean`, `symbol`
-- **Arrays**: `(list string)` - array where each element is validated
-- **Optional**: `(or string nil)` - allows nil/missing values
-- **Enums**: `(choice "a" "b" "c")` - only specific values allowed
-- **Complex**: `(list symbol)` - arrays of symbols for function names
-
-## Available Tools
+## Example Tools (from `examples/mcp-tools.el`)
 
 ### Buffer Management
 - **`mcp-get-buffer-list`**: List all live buffers with optional details
@@ -136,17 +126,6 @@ Use the `claude-code-defmcp` macro to create new MCP tools with rich type specif
 - **`mcp-check-parens-range`**: Check balance in line ranges
 - **`mcp-show-paren-balance`**: Display running balance counts by line
 
-## Test Tools
-
-The following test tools demonstrate the type validation system:
-
-### Validation Examples
-- **`mcp-test-validation`**: Test basic types (string, integer, array)
-- **`mcp-test-symbols`**: Test symbol handling for function names  
-- **`mcp-test-enum`**: Test enum validation with specific allowed values
-
-These tools show how the type system validates parameters and provides clear error messages when types don't match.
-
 ## Configuration
 
 ### Server Settings
@@ -177,128 +156,47 @@ These tools show how the type system validates parameters and provides clear err
       '("password" ".pem" "secret" ".key" "token" "credential" "auth" ".ssh"))
 ```
 
-## Security Considerations
+## Security
 
-⚠️ **Important Security Notice**: This MCP server provides Claude with broad access to your Emacs environment.
+⚠️ This MCP server provides Claude with broad access to your Emacs environment, depending on the tools that you provide it with. The example tools have the following access:
 
-### Access Scope
-- **Buffer Access**: Can read any open buffer (source code, notes, sensitive files)
-- **File Access**: Restricted to current directory and `/tmp/ClaudeWorkingFolder/` by default
-- **Emacs Variables**: Can query any Emacs variable value
-- **Org Data**: Full access to agenda, TODOs, capture templates
-
-### Protection Mechanisms
-- **Input Validation**: Blocks Elisp injection, shell commands, directory traversal
-- **Buffer Blocking**: Configurable patterns to block sensitive buffers
-- **File Restrictions**: Limits file access to safe directories (configurable)
-- **Parameter Sanitization**: Validates symbols, file paths, and content
-
-### Best Practices
-- Close sensitive buffers before enabling MCP
-- Use dedicated Emacs sessions for Claude interactions
-- Review blocked buffer patterns for your use case
-- Consider disabling web access when using MCP tools
-- Use Claude Code's directory restrictions in settings
-
-## File Output
-
-Many tools write results to `/tmp/ClaudeWorkingFolder/` for analysis:
-- Agenda exports: `agenda.txt`
-- Buffer contents: `<buffer-name>.txt`
-- Analysis results: Various descriptive filenames
-- Ensure this directory is accessible to Claude Code CLI
-
-## Server Management
-
-### Interactive Commands
-- `M-x claude-code-start-mcp-server` - Start the server
-- `M-x claude-code-stop-mcp-server` - Stop the server
-- Auto-starts via `claude-code-start-hook` if enabled
-
-### Status Checking
-Check server status and view client connections through the `claude-code-mcp-server-process` variable.
+- **Access**: Can read buffers, query variables, access Org data
+- **Restrictions**: File access limited to current directory and `/tmp/ClaudeWorkingFolder/`
+- **Protection**: Input validation, configurable buffer blocking patterns
 
 ## Troubleshooting
 
-### Common Issues
-1. **No tools available**: Load `examples/mcp-tools.el`
-2. **Permission denied**: Add `/tmp/ClaudeWorkingFolder` to Claude Code settings
-3. **Port conflicts**: Change `claude-code-mcp-port` to available port
-4. **Connection issues**: Check proxy script permissions and nc availability
-5. **Validation errors**: Toggle validation with `claude-code-mcp-enable-validation` or fix type schemas
+- **No tools available**: Load `examples/mcp-tools.el`
+- **Port conflicts**: Change `claude-code-mcp-port`
+- **Debugging**: Check `*Messages*` buffer for server logs
 
-### Debugging
-- Check `*Messages*` buffer for server logs
-- Verify server process with `(process-live-p claude-code-mcp-server-process)`
-- Test tools directly: `(mcp-hello-world "test")`
+## Using the Framework
 
-## Development
+### Creating Custom Tools
 
-### Adding New Components
+The framework provides the `claude-code-defmcp` macro for defining your own MCP tools:
 
-#### Tools
-1. Define using `claude-code-defmcp` macro
-2. Include `:mcp-description` and `:mcp-schema`
-3. Follow security patterns from existing tools
-4. Test with various input types
-
-#### Resources
-1. Define using `claude-code-defmcp-resource` macro
-2. Include `:mcp-description` and `:mcp-mime-type`
-3. Return current data that updates when accessed
-4. Use appropriate MIME types ("text/plain", "application/json", etc.)
-
-#### Prompts
-1. Define using `claude-code-defmcp-prompt` macro
-2. Include `:mcp-description` and `:mcp-schema` for parameters
-3. Return well-formatted prompts with clear instructions
-4. Include examples and specific guidance
-
-### Simplified Type System
-
-The MCP server uses a simplified type system focused on practical use cases:
-
-#### Supported Types
-- **Basic**: `string`, `integer`, `number`, `boolean`, `symbol`
-- **Arrays**: `(list type)` - arrays where each element is validated
-- **Optional**: `(or type nil)` - allows nil/missing values  
-- **Enums**: `(choice "val1" "val2" ...)` - specific allowed values only
-- **Predefined Types**: `cl-deftype` enums like `mcp-search-type`, `mcp-priority`
-
-#### Schema Format
 ```elisp
-:mcp-schema '((name . (string "User name"))
-              (files . ((list string) "Array of file paths"))  
-              (status . ((choice "active" "inactive") "Status choice"))
-              (priority . (mcp-priority "Task priority"))
-              (count . ((or integer nil) "Optional number")))
+(claude-code-defmcp my-custom-tool (name files)
+  "Documentation for my custom tool."
+  :mcp-description "Brief description for MCP clients"
+  :mcp-schema '((name . (string "User name"))
+                (files . ((list string) "File paths")))
+  ;; Your tool implementation
+  (format "Processing %s with %d files" name (length files)))
 ```
 
-#### Features
-- **Simple & Clean**: Only the types actually used by existing tools
-- **JSON Schema Generation**: Automatic conversion to JSON Schema for MCP clients
-- **Parameter Validation**: Real-time validation with clear error messages (configurable)
-- **Emacs-Aware**: Supports Emacs symbols for function names and variables
-- **Extensible**: Define custom enum types with `cl-deftype` for reusable validation
-- **Performance Toggle**: Disable validation entirely via `claude-code-mcp-enable-validation`
+### Type System
+- **Basic Types**: `string`, `integer`, `number`, `boolean`, `symbol`
+- **Collections**: `(list type)` for arrays
+- **Optional**: `(or type nil)` for optional parameters
+- **Enums**: `(choice "option1" "option2")` for limited choices
 
-### Security Guidelines
-- Validate all user inputs
-- Use `claude-code-mcp-buffer-blocked-p` for buffer access
-- Write outputs to `/tmp/ClaudeWorkingFolder/`
-- Avoid shell commands or file system modifications
+### Example vs Custom Tools
+- **Use examples directly**: Load `examples/mcp-tools.el` for immediate functionality
+- **Create custom tools**: Use the framework to build tools specific to your workflow
+- **Mix both**: Load examples and add your custom tools alongside them
 
-## License
-
-This project follows the same license as Emacs itself.
-
-## Contributing
-
-Contributions welcome! Focus areas:
-- Additional tool implementations
-- Security enhancements  
-- Documentation improvements
-- Performance optimizations
 
 ## Related Projects
 
