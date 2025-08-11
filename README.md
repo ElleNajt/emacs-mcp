@@ -4,12 +4,13 @@ A Model Context Protocol (MCP) server implementation in Emacs Lisp that enables 
 
 ## Overview
 
-This project provides two main components:
+This project provides three main components:
 
-1. **MCP Server Framework** (`claude-code-mcp-server.el`, `claude-code-mcp-types.el`) - A complete MCP server implementation with type validation, security features, and macro system for defining tools
-2. **Example Tool Collection** (`examples/mcp-tools.el`) - 25+ ready-to-use tools for buffer management, Org-mode operations, workspace control, and Elisp debugging
+1. **Main Entry Point** (`emacs-mcp.el`) - Loads the core MCP framework
+2. **MCP Server Framework** (`claude-code-mcp-server.el`, `claude-code-mcp-types.el`) - A complete MCP server implementation with type validation, security features, and macro system for defining tools
+3. **Example Tool Collection** (`example/mcp-tools.el`) - 25+ optional ready-to-use tools for buffer management, Org-mode operations, workspace control, and Elisp debugging
 
-The framework enables you to create custom MCP tools for your specific Emacs workflow, while the example tools provide immediate functionality.
+The framework enables you to create custom MCP tools for your specific Emacs workflow, while the example tools provide immediate functionality and can be loaded optionally.
 
 ## Installation
 
@@ -34,14 +35,18 @@ The framework enables you to create custom MCP tools for your specific Emacs wor
    ```elisp
    (use-package! emacs-mcp
      :config
-     ;; Load the MCP server framework
-     (require 'claude-code-mcp-server)
-     (require 'claude-code-mcp-types)
-     
-     ;; Load example tools
+     ;; Optionally load example tools
      (require 'mcp-tools)
      
      ;; Start the MCP server
+     (claude-code-mcp-start-server))
+   ```
+   
+   Or for just the core framework without examples:
+   ```elisp
+   (use-package! emacs-mcp
+     :config
+     ;; Start the MCP server (core framework only)
      (claude-code-mcp-start-server))
    ```
 
@@ -54,12 +59,11 @@ The framework enables you to create custom MCP tools for your specific Emacs wor
    ```
 
 2. **Try the example configuration**:
-   The `examples/init-example.el` file provides a complete configuration for testing without installing. It expects to be run from the repository directory:
+   The `example/init-example.el` file provides a complete configuration for testing without installing. It expects to be run from the repository directory:
    ```elisp
    ;; Load from current directory (for testing only)
-   (load-file "claude-code-mcp-server.el")
-   (load-file "claude-code-mcp-types.el") 
-   (load-file "example/mcp-tools.el")
+   (load-file "emacs-mcp.el")  ; This loads the core framework
+   (require 'mcp-tools)        ; Optionally load example tools
    (claude-code-mcp-start-server)
    ```
 
