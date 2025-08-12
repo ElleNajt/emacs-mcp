@@ -1,4 +1,4 @@
-;;; claude-code-mcp-server.el --- MCP (Model Context Protocol) server for Emacs -*- lexical-binding: t; -*-
+;;; emacsmcp-mcp-server.el --- MCP (Model Context Protocol) server for Emacs -*- lexical-binding: t; -*-
 
 ;; Author: Claude AI
 ;; Version: 1.0.0
@@ -17,36 +17,36 @@
 
 ;; Conditionally load type system module
 (cl-eval-when (load eval)
-  (let ((types-file (expand-file-name "claude-code-mcp-types.el" 
+  (let ((types-file (expand-file-name "emacsmcp-mcp-types.el"
                                       (file-name-directory (or load-file-name buffer-file-name)))))
     (when (file-exists-p types-file)
       (load types-file nil t))))
 
 ;;;; Configuration
 
-(defcustom claude-code-mcp-port 8765
+(defcustom emacsmcp-mcp-port 8765
   "TCP port for the MCP server."
   :type 'integer
-  :group 'claude-code)
+  :group 'emacsmcp)
 
-(defcustom claude-code-mcp-enabled t
+(defcustom emacsmcp-mcp-enabled t
   "Whether MCP server functionality is enabled."
   :type 'boolean
-  :group 'claude-code)
+  :group 'emacsmcp)
 
 ;;;; State variables
 
-(defvar claude-code-mcp-server-process nil
+(defvar emacsmcp-mcp-server-process nil
   "The MCP TCP server process.")
 
-(defvar claude-code-mcp-client-connections nil
+(defvar emacsmcp-mcp-client-connections nil
   "List of active MCP client connections.")
 
 
 
 ;;;; MCP Tool definition macro
 
-(defun claude-code-mcp-parse-new-schema (params)
+(defun emacsmcp-mcp-parse-new-schema (params)
   "Convert new parameter format to old schema format.
 PARAMS is a list of parameter definitions in the new format:
   ((:name \"param1\" :type \"string\" :required t :description \"desc\"))
@@ -66,11 +66,11 @@ Returns an alist in the old format:
                                  (read type) ; Parse "(list string)" -> (list string)
                                (intern type)))) ; Keep simple types as symbols
             (push (cons (intern name)
-                       (list parsed-type desc))
+                        (list parsed-type desc))
                   result)))))
     (nreverse result)))
 
-(defmacro claude-code-defmcp (name args docstring &rest body-and-properties)
+(defmacro emacsmcp-defmcp (name args docstring &rest body-and-properties)
   "Define an MCP tool function with embedded properties.
 NAME is the function name, ARGS is the argument list, DOCSTRING is the documentation.
 The DOCSTRING is automatically used as the MCP tool description.
@@ -94,7 +94,7 @@ New format: :parameters ((:name \"param\" :type \"string\" :required t :descript
          ((eq item :parameters)
           (let ((params (cadr body-and-properties)))
             ;; Convert new format to old format
-            (setq schema (claude-code-mcp-parse-new-schema params)))
+            (setq schema (emacsmcp-mcp-parse-new-schema params)))
           (setq body-and-properties (cddr body-and-properties)))
          (t
           (push item body)
@@ -115,12 +115,12 @@ New format: :parameters ((:name \"param\" :type \"string\" :required t :descript
 
 ;;;; JSON-RPC message handling
 
-(defun claude-code-mcp-send-response (process response)
+(defun emacsmcp-mcp-send-response (process response)
   "Send JSON-RPC RESPONSE to PROCESS."
   (let ((json-str (json-encode response)))
     (process-send-string process (concat json-str "\n"))))
 
-(defun claude-code-mcp-process-message (process message-string)
+(defun emacsmcp-mcp-process-message (process message-string)
   "Process a single MCP message from PROCESS."
   (condition-case err
       (when (and message-string (not (string-empty-p (string-trim message-string))))
@@ -128,20 +128,20 @@ New format: :parameters ((:name \"param\" :type \"string\" :required t :descript
                (method (alist-get 'method request))
                (id (alist-get 'id request))
                (params (alist-get 'params request))
-               (response (claude-code-mcp-handle-method method id params)))
+               (response (emacsmcp-mcp-handle-method method id params)))
           (when response
-            (claude-code-mcp-send-response process response))))
+            (emacsmcp-mcp-send-response process response))))
     (error
-     (let ((request-id (or (ignore-errors 
-                             (alist-get 'id (json-parse-string message-string :object-type 'alist)))
-                           nil))
-           (error-response `((jsonrpc . "2.0")
-                             (id . ,request-id)
-                             (error . ((code . -32603)
-                                       (message . ,(format "Internal error: %s" (error-message-string err))))))))
-       (claude-code-mcp-send-response process error-response)))))
+     (let* ((request-id (or (ignore-errors 
+                              (alist-get 'id (json-parse-string message-string :object-type 'alist)))
+                            nil))
+            (error-response `((jsonrpc . "2.0")
+                              (id . ,request-id)
+                              (error . ((code . -32603)
+                                        (message . ,(format "Internal error: %s" (error-message-string err))))))))
+       (emacsmcp-mcp-send-response process error-response)))))
 
-(defun claude-code-mcp-handle-method (method id params)
+(defun emacsmcp-mcp-handle-method (method id params)
   "Handle MCP METHOD with ID and PARAMS, return response."
   (cond
    ;; Initialize handshake
@@ -155,7 +155,7 @@ New format: :parameters ((:name \"param\" :type \"string\" :required t :descript
 
    ;; List available tools
    ((string= method "tools/list")
-    (let ((tools (claude-code-mcp-discover-tools)))
+    (let ((tools (emacsmcp-mcp-discover-tools)))
       `((jsonrpc . "2.0")
         (id . ,id)
         (result . ((tools . ,(apply #'vector tools)))))))
@@ -164,7 +164,7 @@ New format: :parameters ((:name \"param\" :type \"string\" :required t :descript
    ((string= method "tools/call")
     (let* ((tool-name (alist-get 'name params))
            (tool-args (alist-get 'arguments params))
-           (result (claude-code-mcp-call-tool tool-name tool-args)))
+           (result (emacsmcp-mcp-call-tool tool-name tool-args)))
       `((jsonrpc . "2.0")
         (id . ,id)
         (result . ((content . [((type . "text")
@@ -181,7 +181,7 @@ New format: :parameters ((:name \"param\" :type \"string\" :required t :descript
 
 ;;;; Tool discovery and execution
 
-(defun claude-code-mcp-discover-tools ()
+(defun emacsmcp-mcp-discover-tools ()
   "Discover all available MCP tools."
   (let ((tools '()))
     (mapatoms
@@ -192,7 +192,7 @@ New format: :parameters ((:name \"param\" :type \"string\" :required t :descript
                 (description (or (get symbol :mcp-description) 
                                  (format "MCP tool: %s" name)))
                 (schema (or (get symbol :mcp-schema) '()))
-                (input-schema (claude-code-mcp-build-json-schema schema)))
+                (input-schema (emacsmcp-mcp-build-json-schema schema)))
            (push `((name . ,name)
                    (description . ,description)
                    (inputSchema . ,input-schema))
@@ -200,24 +200,24 @@ New format: :parameters ((:name \"param\" :type \"string\" :required t :descript
     (nreverse tools)))
 
 
-(defun claude-code-mcp-call-tool (tool-name tool-args)
+(defun emacsmcp-mcp-call-tool (tool-name tool-args)
   "Call MCP tool TOOL-NAME with TOOL-ARGS."
   (let ((symbol (intern tool-name)))
     (if (and (fboundp symbol) (get symbol :mcp-tool))
         (condition-case err
             (let* ((schema (get symbol :mcp-schema))
-                   (validation-result (claude-code-mcp-validate-parameters tool-args schema)))
+                   (validation-result (emacsmcp-mcp-validate-parameters tool-args schema)))
               (if (car validation-result)
                   ;; Validation passed, execute function
                   (let* ((func-args (help-function-arglist symbol))
-                         (ordered-params (claude-code-mcp-map-args tool-args func-args)))
+                         (ordered-params (emacsmcp-mcp-map-args tool-args func-args)))
                     (format "%s" (apply symbol ordered-params)))
                 ;; Validation failed, return error
                 (format "Validation error in %s: %s" tool-name (cdr validation-result))))
           (error (format "Error executing %s: %s" tool-name (error-message-string err))))
       (format "Tool not found: %s" tool-name))))
 
-(defun claude-code-mcp-map-args (params-alist func-args)
+(defun emacsmcp-mcp-map-args (params-alist func-args)
   "Map PARAMS-ALIST to FUNC-ARGS order."
   (let ((mapped-args '())
         (in-rest nil))
@@ -256,7 +256,7 @@ New format: :parameters ((:name \"param\" :type \"string\" :required t :descript
 
 ;;;; Network server
 
-(defun claude-code-mcp-filter (process string)
+(defun emacsmcp-mcp-filter (process string)
   "Filter function for MCP TCP connections.
 PROCESS is the network process, STRING is the received data."
   ;; Buffer incomplete messages
@@ -270,65 +270,65 @@ PROCESS is the network process, STRING is the received data."
           (progn
             (process-put process :mcp-buffer "")
             (dolist (line lines)
-              (claude-code-mcp-process-message process line)))
+              (emacsmcp-mcp-process-message process line)))
         ;; Last line is incomplete, save it for next call
         (let ((complete-lines (butlast lines))
               (incomplete-line (car (last lines))))
           (process-put process :mcp-buffer (or incomplete-line ""))
           (dolist (line complete-lines)
-            (claude-code-mcp-process-message process line)))))))
+            (emacsmcp-mcp-process-message process line)))))))
 
-(defun claude-code-mcp-sentinel (process event)
+(defun emacsmcp-mcp-sentinel (process event)
   "Sentinel function for MCP TCP connections.
 PROCESS is the network process, EVENT is the event description."
   (when (string-match "^\\(closed\\|failed\\)" event)
-    (setq claude-code-mcp-client-connections
-          (delq process claude-code-mcp-client-connections))
+    (setq emacsmcp-mcp-client-connections
+          (delq process emacsmcp-mcp-client-connections))
     (message "MCP client disconnected")))
 
-(defun claude-code-mcp-server-filter (process string)
+(defun emacsmcp-mcp-server-filter (process string)
   "Handle incoming data from MCP clients.
 PROCESS is the server process receiving data, STRING is the received data."
-  (claude-code-mcp-filter process string))
+  (emacsmcp-mcp-filter process string))
 
 ;;;; Server management
 
-(defun claude-code-mcp-start-server ()
+(defun emacsmcp-mcp-start-server ()
   "Start the MCP TCP server."
   (interactive)
-  (when (and claude-code-mcp-enabled
-             (not (and claude-code-mcp-server-process
-                       (process-live-p claude-code-mcp-server-process))))
-    (setq claude-code-mcp-server-process
+  (when (and emacsmcp-mcp-enabled
+             (not (and emacsmcp-mcp-server-process
+                       (process-live-p emacsmcp-mcp-server-process))))
+    (setq emacsmcp-mcp-server-process
           (make-network-process
-           :name "claude-code-mcp"
-           :service claude-code-mcp-port
+           :name "emacsmcp-mcp"
+           :service emacsmcp-mcp-port
            :server t
            :family 'ipv4
            :host 'local
-           :filter #'claude-code-mcp-server-filter))
-    (message "Claude Code MCP server started on port %d" claude-code-mcp-port)))
+           :filter #'emacsmcp-mcp-server-filter))
+    (message "Claude Code MCP server started on port %d" emacsmcp-mcp-port)))
 
-(defun claude-code-mcp-stop-server ()
+(defun emacsmcp-mcp-stop-server ()
   "Stop the MCP TCP server."
   (interactive)
   ;; Stop server process
-  (when (and claude-code-mcp-server-process
-             (process-live-p claude-code-mcp-server-process))
-    (delete-process claude-code-mcp-server-process)
-    (setq claude-code-mcp-server-process nil))
+  (when (and emacsmcp-mcp-server-process
+             (process-live-p emacsmcp-mcp-server-process))
+    (delete-process emacsmcp-mcp-server-process)
+    (setq emacsmcp-mcp-server-process nil))
 
   ;; Close all client connections
-  (dolist (conn claude-code-mcp-client-connections)
+  (dolist (conn emacsmcp-mcp-client-connections)
     (when (process-live-p conn)
       (delete-process conn)))
-  (setq claude-code-mcp-client-connections nil)
+  (setq emacsmcp-mcp-client-connections nil)
 
   (message "Claude Code MCP server stopped"))
 
 ;;;; Load example tools
 
-(defun claude-code-mcp-load-examples ()
+(defun emacsmcp-mcp-load-examples ()
   "Load example MCP tools from examples/mcp-tools.el."
   (interactive)
   (let ((examples-file (expand-file-name "examples/mcp-tools.el" 
@@ -341,7 +341,7 @@ PROCESS is the server process receiving data, STRING is the received data."
 
 ;;;; Auto-start server via hook
 
-(add-hook 'claude-code-start-hook #'claude-code-mcp-start-server)
+(add-hook 'emacsmcp-start-hook #'claude-code-mcp-start-server)
 
-(provide 'claude-code-mcp-server)
-;;; claude-code-mcp-server.el ends here
+(provide 'emacsmcp-mcp-server)
+;;; emacsmcp-mcp-server.el ends here
