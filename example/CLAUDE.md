@@ -21,7 +21,7 @@ The MCP server provides tools to interact with Emacs. These tools must be loaded
 
 3. **Install in Claude Code CLI**:
    ```elisp
-   M-x claude-code-install-mcp-server
+   M-x emacs-mcp-install-mcp-server
    ```
 
 4. **Configure directory permissions** in `~/.claude/settings.json`:
@@ -214,10 +214,10 @@ The MCP server provides tools to interact with Emacs. These tools must be loaded
 
 ## Creating Custom MCP Tools
 
-Use the `claude-code-defmcp` macro to define new tools:
+Use the `emacs-mcp-defmcp` macro to define new tools:
 
 ```elisp
-(claude-code-defmcp my-tool-name (param1 param2)
+(emacs-mcp-defmcp my-tool-name (param1 param2)
   "Function documentation string."
   :mcp-description "Brief description for MCP clients"
   :mcp-schema '((param1 . ("string" "Description of param1"))
@@ -263,35 +263,35 @@ Empty schema `'()` for functions with no parameters.
 
 ### Server Management Commands
 
-- `claude-code-start-mcp-server` - Start MCP server
-- `claude-code-stop-mcp-server` - Stop MCP server
-- `claude-code-restart-mcp-server` - Restart MCP server
-- `claude-code-mcp-status` - Show server status
-- `claude-code-install-mcp-server` - Install in Claude Code CLI
+- `emacs-mcp-start-mcp-server` - Start MCP server
+- `emacs-mcp-stop-mcp-server` - Stop MCP server
+- `emacs-mcp-restart-mcp-server` - Restart MCP server
+- `emacs-mcp-status` - Show server status
+- `emacs-mcp-install-mcp-server` - Install in Claude Code CLI
 
 ### Configuration Variables
 
 ```elisp
 ;; Enable/disable MCP server (default: t)  
-(setq claude-code-mcp-enabled t)
+(setq emacs-mcp-enabled t)
 
 ;; MCP server port (default: 8765)
-(setq claude-code-mcp-port 8765)
+(setq emacs-mcp-port 8765)
 
 ;; Restrict file access to current directory and /tmp/ClaudeWorkingFolder/ (default: t)
-(setq claude-code-mcp-restrict-file-access nil)  ; Allow access to any file
+(setq emacs-mcp-restrict-file-access nil)  ; Allow access to any file
 
 ;; Customize buffer blocking patterns (default includes common sensitive patterns)
-(setq claude-code-mcp-blocked-buffer-patterns 
+(setq emacs-mcp-blocked-buffer-patterns 
       '("password" ".pem" "secret" ".key" "token" "credential" "auth" ".ssh"))
 ```
 
 ### Troubleshooting
 
 1. **No tools available**: Load `examples/mcp/mcp-tools.el` or define your own tools
-2. **Bridge process crashes**: Check `*claude-code-mcp-bridge*` buffer for errors
+2. **Bridge process crashes**: Check `*emacs-mcp-bridge*` buffer for errors
 3. **Permission denied**: Add `/tmp/ClaudeWorkingFolder` to Claude Code settings
-4. **Port conflicts**: Change `claude-code-mcp-port` to an available port
+4. **Port conflicts**: Change `emacs-mcp-port` to an available port
 5. **Security validation errors**: Check parameter format - ensure file paths, symbols, and content follow Emacs conventions
 
 ### Security
@@ -330,7 +330,7 @@ Security validation occurs at the TypeScript layer before parameters reach Emacs
 - Password files, SSH keys, or API credentials you may have opened
 - Any content in your Emacs session
 
-**File Access**: The `mcp-open-file` tool access depends on `claude-code-mcp-restrict-file-access`:
+**File Access**: The `mcp-open-file` tool access depends on `emacs-mcp-restrict-file-access`:
 - **When enabled (default)**: Only current working directory, subdirectories, and `/tmp/ClaudeWorkingFolder/`
 - **When disabled**: Can access any file on the system (blocks only injection patterns)
 - **Always blocked**: Directory traversal (`../`) when restrictions enabled
@@ -350,7 +350,7 @@ Security validation occurs at the TypeScript layer before parameters reach Emacs
 - Security validation: `mcp-server/src/security.ts`
 - Example tools: `examples/mcp/mcp-tools.el`
 - Temp file directory: `/tmp/ClaudeWorkingFolder/`
-- Bridge process logs: `*claude-code-mcp-bridge*` buffer
+- Bridge process logs: `*emacs-mcp-bridge*` buffer
 
 ### Uninstalling
 
@@ -362,9 +362,9 @@ claude mcp remove emacs
 ## Testing MCP Integration
 
 Test the server manually:
-1. Start Emacs with claude-code loaded
+1. Start Emacs with emacs-mcp loaded
 2. Load example tools: `(load-file "examples/mcp/mcp-tools.el")`
-3. Check server status: `M-x claude-code-mcp-status`
+3. Check server status: `M-x emacs-mcp-status`
 4. View available tools via MCP client or Claude Code CLI
 
 ## Debugging Elisp Code

@@ -13,8 +13,8 @@
 ;;; Code:
 
 ;; Load core framework modules in dependency order
-(require 'claude-code-mcp-types)
-(require 'claude-code-mcp-server)
+(require 'mcp-types)
+(require 'mcp-server)
 
 ;; Add example directory to load path for optional loading
 (let ((example-dir (expand-file-name "example" 

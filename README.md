@@ -7,7 +7,7 @@ A Model Context Protocol (MCP) server implementation in Emacs Lisp that enables 
 This project provides three main components:
 
 1. **Main Entry Point** (`emacs-mcp.el`) - Loads the core MCP framework
-2. **MCP Server Framework** (`claude-code-mcp-server.el`, `claude-code-mcp-types.el`) - A complete MCP server implementation with type validation, security features, and macro system for defining tools
+2. **MCP Server Framework** (`mcp-server.el`, `mcp-types.el`) - A complete MCP server implementation with type validation, security features, and macro system for defining tools
 3. **Example Tool Collection** (`example/mcp-tools.el`) - 25+ optional ready-to-use tools for buffer management, Org-mode operations, workspace control, and Elisp debugging
 
 The framework enables you to create custom MCP tools for your specific Emacs workflow, while the example tools provide immediate functionality and can be loaded optionally.
@@ -39,7 +39,7 @@ The framework enables you to create custom MCP tools for your specific Emacs wor
      (require 'mcp-tools)
      
      ;; Start the MCP server
-     (claude-code-mcp-start-server))
+     (emacs-mcp-start-server))
    ```
    
    Or for just the core framework without examples:
@@ -47,7 +47,7 @@ The framework enables you to create custom MCP tools for your specific Emacs wor
    (use-package! emacs-mcp
      :config
      ;; Start the MCP server (core framework only)
-     (claude-code-mcp-start-server))
+     (emacs-mcp-start-server))
    ```
 
 ### Option 2: Manual Installation (For Testing)
@@ -64,7 +64,7 @@ The framework enables you to create custom MCP tools for your specific Emacs wor
    ;; Load from current directory (for testing only)
    (load-file "emacs-mcp.el")  ; This loads the core framework
    (require 'mcp-tools)        ; Optionally load example tools
-   (claude-code-mcp-start-server)
+   (emacs-mcp-start-server)
    ```
 
 3. **Install in Claude Code CLI**:
@@ -83,8 +83,8 @@ The framework enables you to create custom MCP tools for your specific Emacs wor
 ## Framework Components
 
 ### Core Framework Files
-- **`claude-code-mcp-server.el`**: TCP server implementing MCP protocol (port 8765)
-- **`claude-code-mcp-types.el`**: Type system with JSON Schema generation and parameter validation
+- **`mcp-server.el`**: TCP server implementing MCP protocol (port 8765)
+- **`mcp-types.el`**: Type system with JSON Schema generation and parameter validation
 - **`mcp-proxy.sh`**: Proxy script that bridges stdio to TCP using netcat
 
 ### Example Tools
@@ -135,28 +135,28 @@ The framework enables you to create custom MCP tools for your specific Emacs wor
 ### Server Settings
 ```elisp
 ;; Enable/disable MCP server (default: t)
-(setq claude-code-mcp-enabled t)
+(setq emacs-mcp-enabled t)
 
 ;; TCP port for MCP server (default: 8765)  
-(setq claude-code-mcp-port 8765)
+(setq emacs-mcp-port 8765)
 ```
 
 ### Type System Settings
 ```elisp
 ;; Enable/disable parameter validation (default: t)
-(setq claude-code-mcp-enable-validation t)
+(setq emacs-mcp-enable-validation t)
 
 ;; When disabled, all validation is bypassed for performance or debugging
-(setq claude-code-mcp-enable-validation nil)
+(setq emacs-mcp-enable-validation nil)
 ```
 
 ### Security Settings
 ```elisp
 ;; File access restrictions (default: t)
-(setq claude-code-mcp-restrict-file-access t)
+(setq emacs-mcp-restrict-file-access t)
 
 ;; Patterns that block buffer access
-(setq claude-code-mcp-blocked-buffer-patterns
+(setq emacs-mcp-blocked-buffer-patterns
       '("password" ".pem" "secret" ".key" "token" "credential" "auth" ".ssh"))
 ```
 
@@ -171,17 +171,17 @@ The framework enables you to create custom MCP tools for your specific Emacs wor
 ## Troubleshooting
 
 - **No tools available**: Load `examples/mcp-tools.el`
-- **Port conflicts**: Change `claude-code-mcp-port`
+- **Port conflicts**: Change `emacs-mcp-port`
 - **Debugging**: Check `*Messages*` buffer for server logs
 
 ## Using the Framework
 
 ### Creating Custom Tools
 
-The framework provides the `claude-code-defmcp` macro for defining your own MCP tools:
+The framework provides the `emacs-mcp-defmcp` macro for defining your own MCP tools:
 
 ```elisp
-(claude-code-defmcp my-custom-tool (name files)
+(emacs-mcp-defmcp my-custom-tool (name files)
   "Documentation for my custom tool."
   :mcp-description "Brief description for MCP clients"
   :mcp-schema '((name . (string "User name"))
