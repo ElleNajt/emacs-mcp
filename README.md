@@ -23,12 +23,17 @@ The framework enables you to create custom MCP tools for your specific Emacs wor
    
    Add to your `packages.el` (for Doom) or equivalent:
    ```elisp
-   (package! emacs-mcp
-     :recipe (:host github :repo "ElleNajt/emacs-mcp"
-              :post-build (lambda ()
-                           (let ((proxy-path (expand-file-name "mcp-proxy.sh" 
-                                                             (straight--repos-dir "emacs-mcp"))))
-                             (shell-command (format "claude mcp add -s user emacs %s" proxy-path))))))
+(package! emacs-mcp
+  :recipe (:host github :repo "ElleNajt/emacs-mcp"
+           :files ("*.el" "example/*.el" "mcp-proxy.sh")))
+
+(add-hook 'straight-use-package-post-build-functions
+          (lambda (package)
+            (when (string= package "emacs-mcp")
+              (let ((proxy-path (expand-file-name "mcp-proxy.sh" 
+                                                  (straight--build-dir package))))
+                (set-file-modes proxy-path #o755)
+                (shell-command (format "claude mcp add -s user emacs %s" proxy-path))))))
    ```
    
    Add to your `config.el` or init file:
