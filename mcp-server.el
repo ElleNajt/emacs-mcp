@@ -46,29 +46,30 @@
 
 ;;;; MCP Tool definition macro
 
-(defun emacs-mcp-parse-new-schema (params)
-  "Convert new parameter format to old schema format.
+(eval-and-compile
+  (defun emacs-mcp-parse-new-schema (params)
+    "Convert new parameter format to old schema format.
 PARAMS is a list of parameter definitions in the new format:
   ((:name \"param1\" :type \"string\" :required t :description \"desc\"))
 Returns an alist in the old format:
   ((param1 . (string \"desc\")))"
-  (let ((result '()))
-    (dolist (param params)
-      (let ((name (plist-get param :name))
-            (type (plist-get param :type))
-            (desc (plist-get param :description))
-            (required (plist-get param :required)))
-        (when name
-          ;; Convert string name to symbol for the alist key
-          ;; Parse type expression if it's a string containing Lisp code
-          (let ((parsed-type (if (and (stringp type)
-                                      (string-prefix-p "(" type))
-                                 (read type) ; Parse "(list string)" -> (list string)
-                               (intern type)))) ; Keep simple types as symbols
-            (push (cons (intern name)
-                        (list parsed-type desc))
-                  result)))))
-    (nreverse result)))
+    (let ((result '()))
+      (dolist (param params)
+        (let ((name (plist-get param :name))
+              (type (plist-get param :type))
+              (desc (plist-get param :description))
+              (required (plist-get param :required)))
+          (when name
+            ;; Convert string name to symbol for the alist key
+            ;; Parse type expression if it's a string containing Lisp code
+            (let ((parsed-type (if (and (stringp type)
+                                        (string-prefix-p "(" type))
+                                   (read type) ; Parse "(list string)" -> (list string)
+                                 (intern type)))) ; Keep simple types as symbols
+              (push (cons (intern name)
+                          (list parsed-type desc))
+                    result)))))
+      (nreverse result))))
 
 (defmacro emacs-mcp-defmcp (name args docstring &rest body-and-properties)
   "Define an MCP tool function with embedded properties.
@@ -79,6 +80,7 @@ The remaining BODY-AND-PROPERTIES can contain :parameters/:mcp-schema and functi
 Supports two schema formats:
 Old format: :mcp-schema '((param . (type \"description\")))
 New format: :parameters ((:name \"param\" :type \"string\" :required t :description \"desc\"))"
+  (declare (indent defun))
   (let ((schema nil)
         (body '()))
     
@@ -93,7 +95,7 @@ New format: :parameters ((:name \"param\" :type \"string\" :required t :descript
          ;; New format schema
          ((eq item :parameters)
           (let ((params (cadr body-and-properties)))
-            ;; Convert new format to old format
+            ;; Convert new format to old format at expansion time, not runtime
             (setq schema (emacs-mcp-parse-new-schema params)))
           (setq body-and-properties (cddr body-and-properties)))
          (t
@@ -109,8 +111,8 @@ New format: :parameters ((:name \"param\" :type \"string\" :required t :descript
        (put ',name :mcp-tool t)
        ;; Always use docstring as MCP description
        (put ',name :mcp-description ,docstring)
-       ,(when schema
-          `(put ',name :mcp-schema ',schema))
+       ,@(when schema
+           `((put ',name :mcp-schema ',schema)))
        ',name)))
 
 ;;;; JSON-RPC message handling
