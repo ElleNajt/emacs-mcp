@@ -27,9 +27,15 @@ The framework enables you to create custom MCP tools for your specific Emacs wor
   :recipe (:host github :repo "ElleNajt/emacs-mcp"
            :files ("*.el" "example/*.el" "mcp-proxy.sh" "agents/*.md" "post-build-hook.el")))
 
-;; Use the provided post-build hook that handles both MCP setup and agent installation
-(load-file (expand-file-name "post-build-hook.el" 
-                             (straight--repos-dir "emacs-mcp")))
+;; Post-build hook that loads the actual hook implementation after download
+(add-hook 'straight-use-package-post-build-functions
+          (lambda (package)
+            (when (string= package "emacs-mcp")
+              (let ((hook-file (expand-file-name "post-build-hook.el" 
+                                                (straight--build-dir package))))
+                (when (file-exists-p hook-file)
+                  (load hook-file nil nil t)
+                  (message "emacs-mcp: Post-build setup completed"))))))
    ```
    
    Add to your `config.el` or init file:
