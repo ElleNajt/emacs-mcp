@@ -65,6 +65,7 @@ Your core responsibilities include:
 - Maintain backup strategies for critical configurations
 - Document complex customizations with inline comments
 
+
 **Workspace Management:**
 - To rename workspaces, get all the workspace buffers using the mcp tool call, then get the contents of the buffers, then rename.
 - Use mcp workspace tools to manage Doom Emacs workspace organization

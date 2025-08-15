@@ -1374,6 +1374,7 @@ pattern from `emacs-mcp-blocked-buffer-patterns'."
                             (format "Parentheses balance written to %s (final balance: %+d)" output-file balance))))
                     (format "File not found: %s" file-path)))
 
+
 ;;;; Flymake/Flycheck Diagnostics Integration
 
 (emacs-mcp-defmcp mcp-get-diagnostics (buffer-names)
