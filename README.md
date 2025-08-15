@@ -25,7 +25,7 @@ The framework enables you to create custom MCP tools for your specific Emacs wor
    ```elisp
 (package! emacs-mcp
   :recipe (:host github :repo "ElleNajt/emacs-mcp"
-           :files ("*.el" "example/*.el" "mcp-proxy.sh")))
+           :files ("*.el" "example/*.el" "mcp-proxy.sh" "agents/*.md" "post-build-hook.el")))
 
 ;; Use the provided post-build hook that handles both MCP setup and agent installation
 (load-file (expand-file-name "post-build-hook.el" 

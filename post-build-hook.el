@@ -19,20 +19,22 @@
                   (shell-command (format "claude mcp add -s user emacs %s" proxy-path))
                   (message "emacs-mcp: MCP server installed in Claude Code CLI"))
                 
-                ;; Copy agents to Claude agents directory
-                (when (file-directory-p agents-dir)
-                  (unless (file-directory-p claude-agents-dir)
-                    (make-directory claude-agents-dir t))
-                  
-                  (dolist (agent-file (directory-files agents-dir t "\\.md$"))
-                    (let ((target-file (expand-file-name 
-                                       (file-name-nondirectory agent-file)
-                                       claude-agents-dir)))
-                      (copy-file agent-file target-file t)
-                      (message "emacs-mcp: Copied agent %s to %s" 
-                              (file-name-nondirectory agent-file)
-                              claude-agents-dir)))
-                  
-                  (message "emacs-mcp: All agents installed successfully"))))))
+                ;; Copy agent files to Claude agents directory
+                ;; Note: straight flattens all files into build-dir, so agents/*.md become *.md
+                (let ((agent-files (directory-files build-dir t "emacs-manager\\.md$")))
+                  (when agent-files
+                    (unless (file-directory-p claude-agents-dir)
+                      (make-directory claude-agents-dir t))
+                    
+                    (dolist (agent-file agent-files)
+                      (let ((target-file (expand-file-name 
+                                         (file-name-nondirectory agent-file)
+                                         claude-agents-dir)))
+                        (copy-file agent-file target-file t)
+                        (message "emacs-mcp: Copied agent %s to %s" 
+                                (file-name-nondirectory agent-file)
+                                claude-agents-dir)))
+                    
+                    (message "emacs-mcp: All agents installed successfully")))))))
 
 ;;; post-build-hook.el ends here
