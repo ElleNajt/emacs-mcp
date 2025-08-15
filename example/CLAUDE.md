@@ -100,6 +100,14 @@ The MCP server provides tools to interact with Emacs. These tools must be loaded
 - **Returns**: List of buffer names with optional details (file, size, modification status, major mode)
 - **Usage**: Overview of current Emacs session, find specific buffers, monitor buffer states
 
+#### Diagnostics and Error Checking
+
+**`mcp-get-diagnostics`** - Get Flymake/Flycheck diagnostics for buffers
+- **Parameters**: `buffer-names` (array) - List of buffer names to check for diagnostics
+- **Returns**: File path containing all diagnostics from Flymake and Flycheck
+- **Usage**: Debug syntax errors, view LSP diagnostics, check for issues across buffers
+- **Coverage**: Works with any checker that uses Flymake or Flycheck (including LSP modes like eglot and lsp-mode)
+
 #### Buffer Management
 
 **`mcp-emacs-buffer-info`** - Get comprehensive buffer information

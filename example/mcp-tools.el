@@ -1374,6 +1374,60 @@ pattern from `emacs-mcp-blocked-buffer-patterns'."
                             (format "Parentheses balance written to %s (final balance: %+d)" output-file balance))))
                     (format "File not found: %s" file-path)))
 
+;;;; Flymake/Flycheck Diagnostics Integration
+
+(emacs-mcp-defmcp mcp-get-diagnostics (buffer-names)
+  "Get Flymake and Flycheck diagnostics for specified buffers.
+Collects diagnostics from both Flymake and Flycheck, covering LSP modes 
+(eglot, lsp-mode) and other checkers that use these systems."
+  :description "Get Flymake/Flycheck diagnostics for buffers"
+  :parameters ((:name "buffer-names"
+                :type "array"
+                :required t
+                :description "List of buffer names to get diagnostics for"))
+  (let ((all-diagnostics '()))
+    (dolist (buffer-name buffer-names)
+      (when-let ((buffer (get-buffer buffer-name)))
+        (with-current-buffer buffer
+          (let ((buffer-diagnostics '()))
+            
+            ;; Collect Flymake diagnostics
+            (when (bound-and-true-p flymake-mode)
+              (dolist (diag (flymake-diagnostics))
+                (push (format "Line %d: [%s] %s (flymake)"
+                             (line-number-at-pos (flymake-diagnostic-beg diag))
+                             (flymake-diagnostic-type diag)
+                             (flymake-diagnostic-text diag))
+                      buffer-diagnostics)))
+            
+            ;; Collect Flycheck diagnostics  
+            (when (and (bound-and-true-p flycheck-mode)
+                       flycheck-current-errors)
+              (dolist (err flycheck-current-errors)
+                (push (format "Line %d: [%s] %s (%s)"
+                             (or (flycheck-error-line err) 1)
+                             (flycheck-error-level err)
+                             (flycheck-error-message err)
+                             (flycheck-error-checker err))
+                      buffer-diagnostics)))
+            
+            (when buffer-diagnostics
+              (push (format "=== %s ===\n%s"
+                           buffer-name
+                           (mapconcat 'identity (nreverse buffer-diagnostics) "\n"))
+                    all-diagnostics))))))
+    
+    ;; Write results
+    (emacs-mcp-ensure-output-directory)
+    (let* ((output-file (format "%s/diagnostics_%s.txt"
+                               emacs-mcp-output-directory
+                               (format-time-string "%Y%m%d_%H%M%S")))
+           (content (if all-diagnostics
+                       (mapconcat 'identity (nreverse all-diagnostics) "\n\n")
+                     "No diagnostics found.")))
+      (write-region content nil output-file)
+      (format "Diagnostics written to %s" output-file))))
+
 (provide 'mcp-tools)
 
 
