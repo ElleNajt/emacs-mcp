@@ -27,13 +27,9 @@ The framework enables you to create custom MCP tools for your specific Emacs wor
   :recipe (:host github :repo "ElleNajt/emacs-mcp"
            :files ("*.el" "example/*.el" "mcp-proxy.sh")))
 
-(add-hook 'straight-use-package-post-build-functions
-          (lambda (package)
-            (when (string= package "emacs-mcp")
-              (let ((proxy-path (expand-file-name "mcp-proxy.sh" 
-                                                  (straight--build-dir package))))
-                (set-file-modes proxy-path #o755)
-                (shell-command (format "claude mcp add -s user emacs %s" proxy-path))))))
+;; Use the provided post-build hook that handles both MCP setup and agent installation
+(load-file (expand-file-name "post-build-hook.el" 
+                             (straight--repos-dir "emacs-mcp")))
    ```
    
    Add to your `config.el` or init file:
@@ -172,6 +168,14 @@ The framework enables you to create custom MCP tools for your specific Emacs wor
 - **Access**: Can read buffers, query variables, access Org data
 - **Restrictions**: File access limited to current directory and `/tmp/ClaudeWorkingFolder/`
 - **Protection**: Input validation, configurable buffer blocking patterns
+
+## Claude Code Agent
+
+This package includes the `emacs-manager` agent that gets automatically installed by the `post-build-hook.el` (shown in the straight installation example above):
+
+**emacs-manager**: Specialized agent for Emacs management tasks including parentheses debugging, file reloading, configuration management, org-mode interaction (TODOs, scheduling, capture), Emacs debugging (Messages buffer, buffer analysis), and leveraging all emacs-mcp.el tools for comprehensive Emacs interaction.
+
+The post-build hook automatically copies the agent from `agents/emacs-manager.md` to `~/.claude/agents/` during package installation.
 
 ## Troubleshooting
 
